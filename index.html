@@ -51,7 +51,12 @@ button:active{transform:scale(.98)}
 .task-row:hover{background:var(--bg2)}
 .task-row.done{opacity:.4}
 .task-row.done .tname{text-decoration:line-through}
+.task-row.planned{background:color-mix(in srgb,var(--accent) 7%,var(--bg))}
+.task-row.planned .tname{color:var(--accent)}
 input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent-color:var(--accent);flex-shrink:0}
+.plan-bar{padding:6px 0 2px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2)}
+.plan-prog{flex:1;min-width:120px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.plan-fill{height:100%;background:#C6A227;border-radius:3px;transition:width .3s}
 .tier-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap}
 .tname{font-size:13px;font-weight:500}
 .tdesc{font-size:12px;color:var(--text2);line-height:1.4}
@@ -113,7 +118,6 @@ input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent
       <input type="text" id="search" placeholder="Search tasks, bosses…" oninput="render()">
     </div>
     <button id="btn-hide-done" onclick="toggleOpt('hideDone','btn-hide-done')"><i class="ti ti-eye-off" aria-hidden="true"></i> Hide done</button>
-    <button id="btn-kc-only" onclick="toggleOpt('kcOnly','btn-kc-only')"><i class="ti ti-sword" aria-hidden="true"></i> KC bosses only</button>
     <button id="btn-show-hidden" onclick="toggleOpt('showHidden','btn-show-hidden')"><i class="ti ti-eye" aria-hidden="true"></i> Show hidden</button>
     <button onclick="clearHidden()"><i class="ti ti-restore" aria-hidden="true"></i> Restore hidden</button>
   </div>
@@ -126,6 +130,12 @@ input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent
     <span id="stat-text">Loading…</span>
     <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
     <span id="stat-pct">0%</span>
+  </div>
+  <div class="plan-bar" id="plan-bar" style="display:none">
+    <i class="ti ti-list-check"></i>
+    <span id="plan-text">0 pts planned</span>
+    <div class="plan-prog"><div class="plan-fill" id="plan-fill" style="width:0%"></div></div>
+    <span id="plan-target">0 / 466 pts toward next tier</span>
   </div>
   <div class="table-wrap">
     <div class="tbl-head">
@@ -787,12 +797,14 @@ const T=[
 ].map(([tier,name,desc,boss])=>({tier,name,desc,boss}));
 
 // State
-const S={completed:new Set(),hidden:new Set(),bossKC:{},activeTier:'all',hideDone:false,kcOnly:false,showHidden:false,playerType:'',caPoints:0};
+const TP={Easy:1,Medium:2,Hard:3,Elite:4,Master:5,Grandmaster:6};
+const S={completed:new Set(),planned:new Set(),hidden:new Set(),bossKC:{},activeTier:'all',hideDone:false,showHidden:false,playerType:'',caPoints:0};
 
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('osrs-ca-v1')||'{}');
     S.completed=new Set(d.completed||[]);
+    S.planned=new Set(d.planned||[]);
     S.hidden=new Set(d.hidden||[]);
     S.bossKC=d.bossKC||{};
     S.playerType=d.playerType||'';
@@ -805,7 +817,7 @@ function load(){
 function save(){
   const ign=document.getElementById('ign').value.trim();
   localStorage.setItem('osrs-ca-v1',JSON.stringify({
-    completed:[...S.completed],hidden:[...S.hidden],bossKC:S.bossKC,
+    completed:[...S.completed],planned:[...S.planned],hidden:[...S.hidden],bossKC:S.bossKC,
     username:ign,playerType:S.playerType,caPoints:S.caPoints
   }));
 }
@@ -915,7 +927,7 @@ function applyWikiSync(){
 
 function exportData(){
   const ign=document.getElementById('ign').value.trim();
-  const blob=new Blob([JSON.stringify({username:ign,completed:[...S.completed],hidden:[...S.hidden],bossKC:S.bossKC,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({username:ign,completed:[...S.completed],planned:[...S.planned],hidden:[...S.hidden],bossKC:S.bossKC,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`osrs-ca-${ign||'tracker'}.json`;a.click();URL.revokeObjectURL(a.href);
 }
@@ -926,7 +938,7 @@ function importData(e){
   r.onload=ev=>{
     try{
       const d=JSON.parse(ev.target.result);
-      S.completed=new Set(d.completed||[]);S.hidden=new Set(d.hidden||[]);S.bossKC=d.bossKC||{};
+      S.completed=new Set(d.completed||[]);S.planned=new Set(d.planned||[]);S.hidden=new Set(d.hidden||[]);S.bossKC=d.bossKC||{};
       if(d.username) document.getElementById('ign').value=d.username;
       save();render();toast('Progress imported');
     }catch{toast('Invalid file');}
@@ -952,7 +964,6 @@ function render(){
     if(!S.showHidden&&S.hidden.has(t.name)) return false;
     if(S.activeTier!=='all'&&t.tier!==S.activeTier) return false;
     if(S.hideDone&&S.completed.has(t.name)) return false;
-    if(S.kcOnly&&Object.keys(S.bossKC).length>0&&!S.bossKC[t.boss]) return false;
     if(q&&!t.name.toLowerCase().includes(q)&&!t.desc.toLowerCase().includes(q)&&!t.boss.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -961,16 +972,17 @@ function render(){
   } else {
     list.innerHTML=filtered.map(t=>{
       const done=S.completed.has(t.name);
+      const plan=S.planned.has(t.name);
       const hid=S.hidden.has(t.name);
-      const kc=S.bossKC[t.boss];
       const c=TS[t.tier];
       const safeN=t.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return `<div class="task-row${done?' done':''}">
-<input type="checkbox"${done?' checked':''} onchange="toggle('${safeN}')">
+      const cls=done?' done':plan?' planned':'';
+      return `<div class="task-row${cls}">
+<input type="checkbox"${plan?' checked':''} onchange="toggle('${safeN}')"${done?' disabled':''}>
 <span><span class="tier-badge" style="background:${c.bg};color:${c.text}">${t.tier}</span></span>
 <span class="tname">${t.name}</span>
 <span class="tdesc">${t.desc}</span>
-<span class="tboss">${t.boss}${kc?`<span class="kc-badge">${kc.toLocaleString()} KC</span>`:''}</span>
+<span class="tboss">${t.boss}</span>
 <button class="hide-btn" onclick="hide('${safeN}')" title="${hid?'Restore':'Hide'}"><i class="ti ${hid?'ti-eye':'ti-eye-off'}" aria-hidden="true"></i></button>
 </div>`;
     }).join('');
@@ -978,13 +990,25 @@ function render(){
   const done=S.completed.size;
   const total=T.length;
   const pct=total?Math.round(done/total*100):0;
-  document.getElementById('stat-text').textContent=`${filtered.length} shown · ${done}/${total} done · ${S.hidden.size} hidden`;
+  document.getElementById('stat-text').textContent=`${filtered.length} shown · ${done}/${total} completed · ${S.hidden.size} hidden`;
   document.getElementById('stat-pct').textContent=`${pct}%`;
   document.getElementById('prog-fill').style.width=`${pct}%`;
+
+  const TARGET=466;
+  const planPts=T.reduce((sum,t)=>sum+(S.planned.has(t.name)&&!S.completed.has(t.name)?TP[t.tier]||0:0),0);
+  const planBar=document.getElementById('plan-bar');
+  if(planPts>0){
+    planBar.style.display='flex';
+    document.getElementById('plan-text').textContent=`${S.planned.size} task${S.planned.size===1?'':'s'} selected`;
+    document.getElementById('plan-target').textContent=`${planPts} / ${TARGET} pts toward next tier`;
+    document.getElementById('plan-fill').style.width=`${Math.min(100,Math.round(planPts/TARGET*100))}%`;
+  } else {
+    planBar.style.display='none';
+  }
 }
 
 function toggle(name){
-  if(S.completed.has(name)) S.completed.delete(name); else S.completed.add(name);
+  if(S.planned.has(name)) S.planned.delete(name); else S.planned.add(name);
   save();render();
 }
 function hide(name){
