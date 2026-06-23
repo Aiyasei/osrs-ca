@@ -65,6 +65,14 @@ input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9999;white-space:nowrap}
 .toast.show{opacity:1}
 .header-actions{display:flex;gap:6px;margin-left:auto}
+.ws-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center}
+.ws-overlay.open{display:flex}
+.ws-box{background:var(--bg1);border:1px solid var(--border2);border-radius:8px;padding:20px;width:520px;max-width:92vw;display:flex;flex-direction:column;gap:12px}
+.ws-box h3{margin:0;font-size:14px;font-weight:600}
+.ws-box p{margin:0;font-size:12px;color:var(--text2);line-height:1.5}
+.ws-box code{background:var(--bg3);padding:2px 5px;border-radius:3px;font-size:11px;word-break:break-all}
+.ws-box textarea{width:100%;height:110px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:8px;resize:vertical;font-family:monospace;box-sizing:border-box}
+.ws-actions{display:flex;gap:8px;justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -76,7 +84,7 @@ input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent
   <div class="wom-row">
     <input type="text" id="ign" placeholder="RSN (e.g. Ai Yeon-ae)" autocomplete="off">
     <button class="btn-primary" id="sync-btn" onclick="loadWOM()"><i class="ti ti-refresh" aria-hidden="true"></i> Sync KC</button>
-    <button id="ws-btn" onclick="loadWikiSync()"><i class="ti ti-shield-check" aria-hidden="true"></i> WikiSync</button>
+    <button id="ws-btn" onclick="openWsModal()"><i class="ti ti-shield-check" aria-hidden="true"></i> WikiSync</button>
     <span id="player-info"></span>
   </div>
   <div class="header-actions">
@@ -129,6 +137,20 @@ input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="ws-overlay" id="ws-overlay" onclick="if(event.target===this)closeWsModal()">
+  <div class="ws-box">
+    <h3><i class="ti ti-shield-check"></i> WikiSync Import</h3>
+    <p>1. Open this URL in your browser (while logged in):<br>
+    <code id="ws-url">https://sync.runescape.wiki/runelite/player/YOUR_NAME/STANDARD</code></p>
+    <p>2. Select all text on that page (Ctrl+A), copy it, and paste below:</p>
+    <textarea id="ws-json" placeholder='{"combat_achievements":[0,24,28,...]}'></textarea>
+    <div class="ws-actions">
+      <button onclick="closeWsModal()">Cancel</button>
+      <button class="btn-primary" onclick="applyWikiSync()"><i class="ti ti-check"></i> Apply</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const TS={Easy:{bg:'#EAF3DE',text:'#3B6D11'},Medium:{bg:'#E6F1FB',text:'#185FA5'},Hard:{bg:'#FAEEDA',text:'#854F0B'},Elite:{bg:'#FAECE7',text:'#993C1D'},Master:{bg:'#EEEDFE',text:'#3C3489'},Grandmaster:{bg:'#FCEBEB',text:'#791F1F'}};
@@ -832,16 +854,22 @@ async function loadWOM(){
   finally{btn.innerHTML='<i class="ti ti-refresh"></i> Sync KC';btn.disabled=false;}
 }
 
-async function loadWikiSync(){
+function openWsModal(){
   const ign=document.getElementById('ign').value.trim();
-  if(!ign){toast('Enter your RSN first');return;}
-  const btn=document.getElementById('ws-btn');
-  btn.innerHTML='<i class="ti ti-loader-2"></i> Loading…';btn.disabled=true;
+  const url=`https://sync.runescape.wiki/runelite/player/${encodeURIComponent(ign||'YOUR_NAME')}/STANDARD`;
+  document.getElementById('ws-url').textContent=url;
+  document.getElementById('ws-json').value='';
+  document.getElementById('ws-overlay').classList.add('open');
+  document.getElementById('ws-json').focus();
+}
+function closeWsModal(){
+  document.getElementById('ws-overlay').classList.remove('open');
+}
+function applyWikiSync(){
   try{
-    const res=await fetch(`https://sync.runescape.wiki/runelite/player/${encodeURIComponent(ign)}/STANDARD`);
-    if(!res.ok) throw new Error(`WikiSync: "${ign}" not found. Make sure WikiSync plugin is installed and synced.`);
-    const data=await res.json();
+    const data=JSON.parse(document.getElementById('ws-json').value.trim());
     const ids=new Set(data.combat_achievements||[]);
+    if(!ids.size){toast('No combat_achievements found in JSON');return;}
     let added=0;
     for(const t of T){
       const id=CA_IDS[t.name];
@@ -849,10 +877,9 @@ async function loadWikiSync(){
         S.completed.add(t.name);added++;
       }
     }
-    save();render();
+    save();render();closeWsModal();
     toast(`WikiSync: marked ${added} new task${added===1?'':'s'} done (${ids.size} completed in-game)`);
-  }catch(e){toast(e.message);}
-  finally{btn.innerHTML='<i class="ti ti-shield-check"></i> WikiSync';btn.disabled=false;}
+  }catch{toast('Invalid JSON — copy the full page text from the WikiSync URL');}
 }
 
 function exportData(){
