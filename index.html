@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSRS Combat Achievement Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f8f8f6;--bg3:#f0efe9;
+  --text:#1a1a1a;--text2:#555;--text3:#999;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --accent:#534AB7;--radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1c;--bg2:#242424;--bg3:#2a2a2a;
+  --text:#f0efe9;--text2:#aaa;--text3:#666;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+.container{max-width:1120px;margin:0 auto;padding:0 16px}
+.header{background:var(--bg);border-bottom:0.5px solid var(--border2);position:sticky;top:0;z-index:100;padding:10px 0}
+.header-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:15px;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.wom-row{display:flex;align-items:center;gap:8px;flex:1}
+input[type=text]{height:32px;border:0.5px solid var(--border2);border-radius:var(--radius);padding:0 10px;background:var(--bg2);color:var(--text);font-size:13px;outline:none}
+input[type=text]:focus{border-color:var(--accent)}
+.wom-row input[type=text]{width:220px}
+button{height:32px;padding:0 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;transition:background .1s}
+button:hover{background:var(--bg3)}
+button:active{transform:scale(.98)}
+.btn-primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn-primary:hover{opacity:.9;background:var(--accent)}
+.btn-active{background:var(--accent)!important;color:#fff!important;border-color:transparent!important}
+.player-badge{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;background:var(--bg2);border:0.5px solid var(--border);border-radius:20px}
+.controls{background:var(--bg);border-bottom:0.5px solid var(--border);padding:8px 0}
+.tier-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tier-btn{height:26px;padding:0 12px;border-radius:20px;border:0.5px solid;cursor:pointer;font-size:11px;font-weight:500;background:transparent;display:inline-flex;align-items:center}
+.filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-wrap i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
+.search-wrap input{width:100%;padding-left:30px}
+.stats-bar{padding:8px 0;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text2);flex-wrap:wrap}
+.prog-bar{flex:1;min-width:160px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+.table-wrap{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);overflow:hidden;margin-bottom:40px}
+.tbl-head{display:grid;grid-template-columns:28px 90px 1fr 1.6fr 130px 28px;gap:8px;padding:7px 12px;border-bottom:0.5px solid var(--border2);font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;background:var(--bg2)}
+.task-row{display:grid;grid-template-columns:28px 90px 1fr 1.6fr 130px 28px;gap:8px;padding:8px 12px;border-bottom:0.5px solid var(--border);align-items:start;transition:background .1s}
+.task-row:last-child{border-bottom:none}
+.task-row:hover{background:var(--bg2)}
+.task-row.done{opacity:.4}
+.task-row.done .tname{text-decoration:line-through}
+input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent-color:var(--accent);flex-shrink:0}
+.tier-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap}
+.tname{font-size:13px;font-weight:500}
+.tdesc{font-size:12px;color:var(--text2);line-height:1.4}
+.tboss{font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:3px}
+.kc-badge{font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:8px;width:fit-content}
+.hide-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:15px}
+.hide-btn:hover{color:var(--text);background:var(--bg3)}
+.empty{padding:48px;text-align:center;color:var(--text3)}
+.empty i{font-size:32px;display:block;margin-bottom:8px}
+.main{padding:12px 0}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9999;white-space:nowrap}
+.toast.show{opacity:1}
+.header-actions{display:flex;gap:6px;margin-left:auto}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div class="container">
+<div class="header-inner">
+  <h1><i class="ti ti-sword" aria-hidden="true"></i> CA Tracker</h1>
+  <div class="wom-row">
+    <input type="text" id="ign" placeholder="RSN (e.g. Ai Yeon-ae)" autocomplete="off">
+    <button class="btn-primary" id="sync-btn" onclick="loadWOM()"><i class="ti ti-refresh" aria-hidden="true"></i> Sync KC</button>
+    <span id="player-info"></span>
+  </div>
+  <div class="header-actions">
+    <button onclick="exportData()" title="Export as JSON"><i class="ti ti-download" aria-hidden="true"></i> Export</button>
+    <button onclick="document.getElementById('imp').click()" title="Import JSON"><i class="ti ti-upload" aria-hidden="true"></i> Import</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+</div>
+</div>
+
+<div class="controls">
+<div class="container">
+  <div class="tier-row" id="tier-row">
+    <button class="tier-btn" data-tier="all" style="color:var(--text);border-color:var(--border2)">All</button>
+    <button class="tier-btn" data-tier="Easy" style="color:#3B6D11;border-color:#639922">Easy</button>
+    <button class="tier-btn" data-tier="Medium" style="color:#185FA5;border-color:#378ADD">Medium</button>
+    <button class="tier-btn" data-tier="Hard" style="color:#854F0B;border-color:#BA7517">Hard</button>
+    <button class="tier-btn" data-tier="Elite" style="color:#993C1D;border-color:#D85A30">Elite</button>
+    <button class="tier-btn" data-tier="Master" style="color:#3C3489;border-color:#534AB7">Master</button>
+    <button class="tier-btn" data-tier="Grandmaster" style="color:#791F1F;border-color:#A32D2D">Grandmaster</button>
+  </div>
+  <div class="filter-row">
+    <div class="search-wrap">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input type="text" id="search" placeholder="Search tasks, bosses…" oninput="render()">
+    </div>
+    <button id="btn-hide-done" onclick="toggleOpt('hideDone','btn-hide-done')"><i class="ti ti-eye-off" aria-hidden="true"></i> Hide done</button>
+    <button id="btn-kc-only" onclick="toggleOpt('kcOnly','btn-kc-only')"><i class="ti ti-sword" aria-hidden="true"></i> KC bosses only</button>
+    <button id="btn-show-hidden" onclick="toggleOpt('showHidden','btn-show-hidden')"><i class="ti ti-eye" aria-hidden="true"></i> Show hidden</button>
+    <button onclick="clearHidden()"><i class="ti ti-restore" aria-hidden="true"></i> Restore hidden</button>
+  </div>
+</div>
+</div>
+
+<div class="main">
+<div class="container">
+  <div class="stats-bar">
+    <span id="stat-text">Loading…</span>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <span id="stat-pct">0%</span>
+  </div>
+  <div class="table-wrap">
+    <div class="tbl-head">
+      <span></span><span>Tier</span><span>Task</span><span>Description</span><span>Boss</span><span></span>
+    </div>
+    <div id="task-list"></div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TS={Easy:{bg:'#EAF3DE',text:'#3B6D11'},Medium:{bg:'#E6F1FB',text:'#185FA5'},Hard:{bg:'#FAEEDA',text:'#854F0B'},Elite:{bg:'#FAECE7',text:'#993C1D'},Master:{bg:'#EEEDFE',text:'#3C3489'},Grandmaster:{bg:'#FCEBEB',text:'#791F1F'}};
+const WOM={abyssalSire:'Abyssal Sire',alchemicalHydra:'Alchemical Hydra',amoxliatl:'Amoxliatl',araxxor:'Araxxor',barrowsChests:'Barrows',bryophyta:'Bryophyta',callisto:'Callisto',cerberus:'Cerberus',chambersOfXeric:'Chambers of Xeric',chambersOfXericChallengeMode:'CoX Challenge Mode',chaosElemental:'Chaos Elemental',chaosFanatic:'Chaos Fanatic',commanderZilyana:'Commander Zilyana',corporealBeast:'Corporeal Beast',crazyArchaeologist:'Crazy Archaeologist',dagannothPrime:'Dagannoth Prime',dagannothRex:'Dagannoth Rex',dagannothSupreme:'Dagannoth Supreme',derangedArchaeologist:'Deranged Archaeologist',doomOfMokhaiotl:'Doom of Mokhaiotl',dukeSucellus:'Duke Sucellus',fortisColosseum:'Fortis Colosseum',generalGraardor:'General Graardor',giantMole:'Giant Mole',grotesqueGuardians:'Grotesque Guardians',hespori:'Hespori',kalphiteQueen:'Kalphite Queen',kingBlackDragon:'King Black Dragon',kraken:'Kraken',kreearra:"Kree'arra",krilTsutsaroth:"K'ril Tsutsaroth",leviathan:'Leviathan',nex:'Nex',nightmare:'The Nightmare',obor:'Obor',phantomMuspah:'Phantom Muspah',phosanisNightmare:"Phosani's Nightmare",sarachnis:'Sarachnis',scorpia:'Scorpia',scurrius:'Scurrius',skotizo:'Skotizo',tempoross:'Tempoross',theatreOfBlood:'Theatre of Blood',theatreOfBloodHardMode:'Theatre of Blood: HM',thermonuclearSmokeDevil:'Thermonuclear Smoke Devil',tombsOfAmascut:'Tombs of Amascut',tombsOfAmascutExpertMode:'Tombs of Amascut: Expert',tzkalZuk:'TzKal-Zuk',tztokJad:'TzTok-Jad',vardorvis:'Vardorvis',venenatis:'Venenatis',vetion:"Vet'ion",vorkath:'Vorkath',whisperer:'Whisperer',wintertodt:'Wintertodt',yama:'Yama',zalcano:'Zalcano',zulrah:'Zulrah'};
+
+const T=[
+['Easy','Noxious Foe','Kill an Aberrant Spectre.','Aberrant Spectre'],
+['Easy','Defence? What Defence?','Kill any Barrows Brother using only magical damage.','Barrows'],
+['Easy','Barrows Novice','Open the Barrows chest 10 times.','Barrows'],
+['Easy','Big, Black and Fiery','Kill a Black Dragon.','Black Dragon'],
+['Easy','The Demonic Punching Bag','Kill a Bloodveld.','Bloodveld'],
+['Easy','Brutus Novice','Kill Brutus.','Brutus'],
+['Easy','A Slow Death','Kill Bryophyta with poison or venom as the final damage source.','Bryophyta'],
+['Easy','Fighting as Intended II','Kill Bryophyta on a free to play world.','Bryophyta'],
+['Easy','Bryophyta Novice',"Open Bryophyta's chest once.",'Bryophyta'],
+['Easy','Preparation Is Key','Kill Bryophyta without suffering any poison damage.','Bryophyta'],
+['Easy','Protection from Moss','Kill Bryophyta with the Protect from Magic prayer active.','Bryophyta'],
+['Easy','Deranged Archaeologist Novice','Kill the Deranged Archaeologist 10 times.','Deranged Archaeologist'],
+['Easy','The Walking Volcano','Kill a Fire Giant.','Fire Giant'],
+['Easy','Giant Mole Novice','Kill the Giant Mole 10 times.','Giant Mole'],
+['Easy','Into the Den of Giants','Kill a Hill Giant, Moss Giant and Fire Giant in the Giant Cave (Shayzien).','Giants'],
+['Easy','A Greater Foe','Kill a Greater Demon.','Greater Demon'],
+['Easy','Not So Great After All','Finish off a Greater Demon with a demonbane weapon.','Greater Demon'],
+['Easy',"A Demon's Best Friend",'Kill a Hellhound.','Hellhound'],
+['Easy','King Black Dragon Novice','Kill the King Black Dragon 10 times.','King Black Dragon'],
+['Easy','Shayzien Protector','Kill a Lizardman Shaman in Molch which has not dealt damage to anyone.','Lizardman Shaman'],
+['Easy','A Scaley Encounter','Kill a Lizardman Shaman.','Lizardman Shaman'],
+['Easy','Sleeping Giant','Kill Obor whilst he is immobilized.','Obor'],
+['Easy','Fighting as Intended','Kill Obor on a free to play world.','Obor'],
+['Easy','Obor Novice',"Open Obor's chest once.",'Obor'],
+['Easy','One by one','Kill one Titan at a time, without attacking the other.','Royal Titans'],
+['Easy','Elemental Company','Kill the Royal Titans without attacking any elementals.','Royal Titans'],
+['Easy','Let them fight','Kill the Royal Titans while having them kill a total of 10 elementals.','Royal Titans'],
+['Easy','Sarachnis Novice','Kill Sarachnis 10 times.','Sarachnis'],
+['Easy','Sit Rat','Finish off Scurrius with a ratbane weapon in a private instance.','Scurrius'],
+['Easy','Scurrius Novice','Kill Scurrius once.','Scurrius'],
+['Easy','Dry Cleaning','Kill the Shellbane Gryphon after clearing its corrosive spit from your armour.','Shellbane Gryphon'],
+['Easy','Shellbane Adept','Kill the Shellbane Gryphon 25 times.','Shellbane Gryphon'],
+['Easy','Calm Before the Storm','Repair either a mast or a totem pole.','Tempoross'],
+['Easy','Fire in the Hole!','Attack Tempoross from both sides by loading both cannons on both ships.','Tempoross'],
+['Easy','Tempoross Novice','Subdue Tempoross 5 times.','Tempoross'],
+['Easy','Master of Buckets','Extinguish at least 5 fires during a single Tempoross fight.','Tempoross'],
+['Easy','Mummy!','Heal a pyromancer after they have fallen.','Wintertodt'],
+['Easy','Handyman','Repair a brazier which has been destroyed by the Wintertodt.','Wintertodt'],
+['Easy','Cosy','Subdue the Wintertodt with four pieces of warm equipment equipped.','Wintertodt'],
+['Easy','Wintertodt Novice','Subdue the Wintertodt 5 times.','Wintertodt'],
+['Easy','A Slithery Encounter','Kill a Wyrm.','Wyrm'],
+['Medium','Amoxliatl Champion','Kill Amoxliatl once.','Amoxliatl'],
+['Medium','Temotli Triumph','Kill Amoxliatl using only glacial temotli as a weapon.','Amoxliatl'],
+['Medium',"Can't Touch Me","Kill Dharok, Verac, Torag and Guthan without letting them attack you with melee.",'Barrows'],
+['Medium','Barrows Champion','Open the Barrows chest 25 times.','Barrows'],
+['Medium','Pray for Success','Kill all six Barrows Brothers and loot the chest without taking any damage.','Barrows'],
+['Medium','Brutal, Big, Black and Fiery','Kill a Brutal Black Dragon.','Brutal Black Dragon'],
+['Medium','Brutus Champion','Kill Brutus 10 times.','Brutus'],
+['Medium','Beef vs Beef','Kill Brutus whilst neither equipping nor consuming anything.','Brutus'],
+['Medium','Bryophyta Champion',"Open Bryophyta's chest 5 times.",'Bryophyta'],
+['Medium','Quick Cutter',"Kill all 3 of Bryophyta's growthlings within 3 seconds of the first dying.",'Bryophyta'],
+['Medium','Sorry, What Was That?','Kill the Chaos Fanatic without anyone being hit by his explosion attack.','Chaos Fanatic'],
+['Medium','Chaos Fanatic Champion','Kill the Chaos Fanatic 10 times.','Chaos Fanatic'],
+['Medium','Crazy Archaeologist Champion','Kill the Crazy Archaeologist 10 times.','Crazy Archaeologist'],
+['Medium','Mage of the Ruins','Kill the Crazy Archaeologist with only magical attacks.','Crazy Archaeologist'],
+["Medium","I'd Rather Not Learn","Kill the Crazy Archaeologist without anyone being hit by his Rain of Knowledge attack.",'Crazy Archaeologist'],
+['Medium','Dagannoth Prime Champion','Kill Dagannoth Prime 10 times.','Dagannoth Prime'],
+['Medium','Dagannoth Rex Champion','Kill Dagannoth Rex 10 times.','Dagannoth Rex'],
+['Medium','A Frozen King','Kill Dagannoth Rex whilst he is immobilized.','Dagannoth Rex'],
+['Medium','Dagannoth Supreme Champion','Kill Dagannoth Supreme 10 times.','Dagannoth Supreme'],
+['Medium','Deranged Archaeologist Champion','Kill the Deranged Archaeologist 25 times.','Deranged Archaeologist'],
+["Medium","I'd Rather Be Illiterate","Kill the Deranged Archaeologist without anyone being hit by his Learn to Read attack.",'Deranged Archaeologist'],
+['Medium','Mage of the Swamp','Kill the Deranged Archaeologist with only magical attacks.','Deranged Archaeologist'],
+['Medium','A Smashing Time','Kill a Gargoyle.','Gargoyle'],
+['Medium','Avoiding Those Little Arms','Kill the Giant Mole without her damaging anyone.','Giant Mole'],
+['Medium','Giant Mole Champion','Kill the Giant Mole 25 times.','Giant Mole'],
+['Medium','Claw Clipper','Kill the King Black Dragon with the Protect from Melee prayer activated.','King Black Dragon'],
+['Medium','Antifire Protection','Kill the King Black Dragon with an antifire potion active and an antidragon shield.','King Black Dragon'],
+['Medium','Hide Penetration','Kill the King Black Dragon with a stab weapon.','King Black Dragon'],
+['Medium','King Black Dragon Champion','Kill the King Black Dragon 25 times.','King Black Dragon'],
+['Medium','Master of Broad Weaponry','Kill a Kurask.','Kurask'],
+['Medium','Perilous Novice','Open the Reward Chest 5 times.','Moons of Peril'],
+['Medium','Back to Our Roots','Defeat all three Moons in one run using only a Dragon Scimitar.','Moons of Peril'],
+['Medium','Moons of Peril Speed-Trialist','Defeat all three Moons in one run in under 8 minutes.','Moons of Peril'],
+['Medium','Lunar Triplet','Open the Reward Chest after defeating all three Moons.','Moons of Peril'],
+['Medium','Sit Back and Relax','Deal 100 damage to creatures using undead thralls.','Thralls'],
+['Medium','Back to the Wall','Kill Obor without being pushed back more than one square by his knockback attack.','Obor'],
+['Medium','Squashing the Giant','Kill Obor without taking any damage off prayer.','Obor'],
+['Medium','Obor Champion',"Open Obor's chest 5 times.",'Obor'],
+['Medium','Royal Titan Adept','Kill the Royal Titans 25 times.','Royal Titans'],
+['Medium','Royal Titan Champion','Kill the Royal Titans 10 times.','Royal Titans'],
+['Medium','It takes too long','Kill both Royal Titans while they are charging up their area attack during same phase.','Royal Titans'],
+['Medium','Newspaper Enthusiast','Kill Sarachnis with a crush weapon.','Sarachnis'],
+['Medium','Sarachnis Champion','Kill Sarachnis 25 times.','Sarachnis'],
+['Medium','Perfect Scurrius','Kill Scurrius without damage from Tail Swipe, Falling Bricks; pray correctly against Flying Fur and Bolts.','Scurrius'],
+['Medium','Efficient Pest Control',"Kill 6 Giant Rats within Scurrius' lair in 3 seconds.",'Scurrius'],
+['Medium','Scurrius Champion','Kill Scurrius 10 times.','Scurrius'],
+['Medium','Shellbane Veteran','Kill the Shellbane Gryphon 50 times.','Shellbane Gryphon'],
+['Medium','Perfect Shellbane','Kill the Shellbane Gryphon without taking damage.','Shellbane Gryphon'],
+['Medium','Shellbane Speedrunner','Kill the Shellbane Gryphon 10 times within 12:30 minutes of cave entry.','Shellbane Gryphon'],
+['Medium','A Frozen Foe from the Past','Kill a Skeletal Wyvern.','Skeletal Wyvern'],
+['Medium','Skotizo Champion','Kill Skotizo once.','Skotizo'],
+['Medium','Demonic Weakening','Kill Skotizo with no altars active.','Skotizo'],
+['Medium','Demonbane Weaponry','Kill Skotizo with a demonbane weapon equipped.','Skotizo'],
+['Medium','Tempoross Champion','Subdue Tempoross 10 times.','Tempoross'],
+['Medium','The Lone Angler','Subdue Tempoross alone without getting hit by fires, torrents or waves.','Tempoross'],
+["Medium","You're a wizard",'Kill the Hueycoatl using only earth spells.','Hueycoatl'],
+['Medium','Hueycoatl Champion','Kill the Hueycoatl once.','Hueycoatl'],
+['Medium','Can We Fix It?','Subdue the Wintertodt without allowing all 4 braziers to be broken simultaneously.','Wintertodt'],
+['Medium','Wintertodt Champion','Subdue the Wintertodt 10 times.','Wintertodt'],
+['Medium','Leaving No One Behind','Subdue the Wintertodt without any of the Pyromancers falling.','Wintertodt'],
+['Hard','Abyssal Adept','Kill the Abyssal Sire 20 times.','Abyssal Sire'],
+['Hard',"Don't Stop Moving",'Kill the Abyssal Sire without taking damage from any miasma pools.','Abyssal Sire'],
+['Hard',"Don't Whip Me",'Kill the Abyssal Sire without being hit by any external tentacles.','Abyssal Sire'],
+['Hard','They Grow Up Too Fast','Kill the Abyssal Sire without letting any Scion mature.','Abyssal Sire'],
+['Hard','Amoxliatl Adept','Kill Amoxliatl 20 times.','Amoxliatl'],
+['Hard','Amoxliatl Speed-Trialist','Kill Amoxliatl in less than 1 minute.','Amoxliatl'],
+['Hard','Kemo Makti','Kill Amoxliatl 10 times without leaving her chamber.','Amoxliatl'],
+['Hard','Nagua Negation','Kill Amoxliatl without taking any damage.','Amoxliatl'],
+['Hard','Totally Shattered',"Kill Amoxliatl without any of her unstable ice shattering.",'Amoxliatl'],
+['Hard','Faithless Crypt Run','Defeat all six Barrows brothers and loot chest with zero prayer points.','Barrows'],
+['Hard','Just Like That','Kill Karil using only damage dealt by special attacks.','Barrows'],
+['Hard','Smarter than a Cow','Kill Brutus without being attacked.','Brutus'],
+['Hard','Callisto Adept','Kill Callisto 10 times.','Callisto'],
+['Hard','The Flincher',"Kill the Chaos Elemental without taking any damage from its attacks.",'Chaos Elemental'],
+['Hard','Hoarder',"Kill the Chaos Elemental without it unequipping any of your items.",'Chaos Elemental'],
+['Hard','Chaos Elemental Adept','Kill the Chaos Elemental 10 times.','Chaos Elemental'],
+['Hard','Chaos Fanatic Adept','Kill the Chaos Fanatic 25 times.','Chaos Fanatic'],
+['Hard','Praying to the Gods','Complete 10 Chaos Fanatic kills without consuming prayer-restoring potions or leaving the Wilderness.','Chaos Fanatic'],
+['Hard','Commander Showdown','Finish off Commander Zilyana while all bodyguards are defeated.','Commander Zilyana'],
+['Hard','Commander Zilyana Adept','Kill Commander Zilyana 50 times.','Commander Zilyana'],
+['Hard','Crazy Archaeologist Adept','Kill the Crazy Archaeologist 25 times.','Crazy Archaeologist'],
+['Hard','Dagannoth Prime Adept','Kill Dagannoth Prime 25 times.','Dagannoth Prime'],
+['Hard','Dagannoth Rex Adept','Kill Dagannoth Rex 25 times.','Dagannoth Rex'],
+['Hard','Dagannoth Supreme Adept','Kill Dagannoth Supreme 25 times.','Dagannoth Supreme'],
+['Hard','General Graardor Adept','Kill General Graardor 50 times.','General Graardor'],
+['Hard','General Showdown','Finish off General Graardor whilst all bodyguards are eliminated.','General Graardor'],
+['Hard','Ourg Freezer','Kill General Graardor whilst he is immobilized.','General Graardor'],
+['Hard',"Why Are You Running?",'Kill the Giant Mole without her burrowing more than 2 times.','Giant Mole'],
+['Hard','Whack-a-Mole','Kill the Giant Mole within 10 seconds of her resurfacing.','Giant Mole'],
+['Hard','Static Awareness','Kill the Grotesque Guardians without being hit by any lightning attacks.','Grotesque Guardians'],
+['Hard','Prison Break',"Kill the Grotesque Guardians without taking damage from Dusk's prison attack.",'Grotesque Guardians'],
+['Hard','Heal No More',"Kill the Grotesque Guardians without letting Dawn receive any healing from her orbs.",'Grotesque Guardians'],
+['Hard',"Don't Look at the Eclipse","Kill the Grotesque Guardians without taking damage from Dusk's blinding attack.",'Grotesque Guardians'],
+['Hard','Grotesque Guardians Adept','Kill the Grotesque Guardians 25 times.','Grotesque Guardians'],
+['Hard','Granite Footwork',"Kill the Grotesque Guardians without taking damage from Dawn's rockfall attack.",'Grotesque Guardians'],
+['Hard',"Hesporisn't",'Finish off Hespori with a special attack.','Hespori'],
+['Hard','Weed Whacker',"Kill all of Hespori's flowers within 5 seconds.",'Hespori'],
+['Hard','Hespori Adept','Kill Hespori 5 times.','Hespori'],
+['Hard','Yarr No More',"Receive kill-credit for K'ril Tsutsaroth without him using his special attack.","K'ril Tsutsaroth"],
+['Hard','Demonbane Weaponry II',"Finish off K'ril Tsutsaroth with a demonbane weapon.","K'ril Tsutsaroth"],
+['Hard','Demonic Showdown',"Finish off K'ril Tsutsaroth whilst all of his bodyguards are dead.","K'ril Tsutsaroth"],
+['Hard',"K'ril Tsutsaroth Adept","Kill K'ril Tsutsaroth 50 times.","K'ril Tsutsaroth"],
+['Hard','Kalphite Queen Adept','Kill the Kalphite Queen 25 times.','Kalphite Queen'],
+['Hard','Chitin Penetrator','Kill the Kalphite Queen while her defence was last lowered by you.','Kalphite Queen'],
+['Hard','Who Is the King Now?','Kill The King Black Dragon 10 times in a private instance without leaving.','King Black Dragon'],
+['Hard',"Krakan't Hurt Me",'Kill the Kraken 25 times in a private instance without leaving the room.','Kraken'],
+['Hard','Unnecessary Optimisation','Kill the Kraken after killing all four tentacles.','Kraken'],
+['Hard','Kraken Adept','Kill the Kraken 20 times.','Kraken'],
+['Hard',"Kree'arra Adept","Kill Kree'arra 50 times.","Kree'arra"],
+['Hard','Airborne Showdown',"Finish off Kree'arra whilst all of his bodyguards are dead.","Kree'arra"],
+['Hard','Perilous Champion','Open the Moons of Peril Reward Chest 25 times.','Moons of Peril'],
+['Hard','Perilous Dancer','Defeat all three Moons in one run taking damage only from standard attacks.','Moons of Peril'],
+['Hard','Moons of Peril Speed-Chaser','Defeat all three Moons in one run in under 6 minutes.','Moons of Peril'],
+['Hard','Betrayal','Defeat a Moon using its associated weapon drop.','Moons of Peril'],
+['Hard','Fortified','Defeat a Moon without consuming any supplies.','Moons of Peril'],
+['Hard','The Clone Zone','Defeat the Eclipse moon by only attacking its clones.','Moons of Peril'],
+['Hard','Fat of the Land','Defeat 30 Moons of Peril bosses without leaving the dungeon.','Moons of Peril'],
+['Hard','Phantom Muspah Adept','Kill the Phantom Muspah.','Phantom Muspah'],
+['Hard','Royal Titan Speed-Runner','Kill the Royal Titans in less than 1:30 minutes.','Royal Titans'],
+['Hard','Perfect Royal Titans','Defeat the Royal Titans without taking avoidable damage from melee, explosions, spawns, or pulses.','Royal Titans'],
+['Hard','Titan Killer','Kill the Royal Titans 15 times without anyone leaving the instance.','Royal Titans'],
+['Hard','I need room','Extinguish all fires and melt all icicles before natural dissipation.','Royal Titans'],
+['Hard','Ready to Pounce',"Kill Sarachnis without her using her range attack twice in a row.",'Sarachnis'],
+['Hard','Inspect Repellent','Kill Sarachnis without her dealing damage to anyone.','Sarachnis'],
+['Hard','Scorpia Adept','Kill Scorpia 10 times.','Scorpia'],
+['Hard',"I Can't Reach That","Kill Scorpia without taking any damage from her.",'Scorpia'],
+['Hard','Guardians No More',"Kill Scorpia without killing her guardians.",'Scorpia'],
+['Hard','Featherweight Fighter','Kill the Shellbane Gryphon 5 times without leaving the cave, wearing gear under 40kg.','Shellbane Gryphon'],
+['Hard','Shellbane Survivor','Kill the Shellbane Gryphon 25 times without leaving the cave.','Shellbane Gryphon'],
+['Hard','Skotizo Adept','Kill Skotizo 5 times.','Skotizo'],
+['Hard','Dress Like You Mean It','Subdue Tempoross while wearing any variation of the angler outfit.','Tempoross'],
+['Hard','Why Cook?','Subdue Tempoross, getting rewarded with 10 reward permits from a single fight.','Tempoross'],
+['Hard',"I'm your son",'Kill the Hueycoatl whilst wearing two pieces of Hueycoatl armour.','Hueycoatl'],
+['Hard','Pillar Lover','Kill the Hueycoatl whilst it is vulnerable.','Hueycoatl'],
+['Hard','Hueycoatl Adept','Kill the Hueycoatl 10 times.','Hueycoatl'],
+['Hard','Nightmare Adept','Kill The Nightmare once.','The Nightmare'],
+['Hard','Theatre of Blood: SM Adept','Complete the Theatre of Blood: Entry Mode 1 time.','Theatre of Blood'],
+['Hard',"Movin' on up",'Complete a Tombs of Amascut raid at level 50 or above.','Tombs of Amascut'],
+['Hard','Confident Raider','Complete a Tombs of Amascut raid at level 100 or above.','Tombs of Amascut'],
+['Hard','Novice Tomb Explorer','Complete the Tombs of Amascut in Entry mode (or above) once.','Tombs of Amascut'],
+['Hard','Novice Tomb Looter','Complete the Tombs of Amascut in Entry mode (or above) 25 times.','Tombs of Amascut'],
+['Hard','Venenatis Adept','Kill Venenatis 10 times.','Venenatis'],
+['Hard',"Vet'ion Adept","Kill Vet'ion 10 times.","Vet'ion"],
+['Hard','Why Fletch?','Subdue the Wintertodt after earning 3000 or more points.','Wintertodt'],
+['Hard','Zulrah Adept','Kill Zulrah 25 times.','Zulrah'],
+['Elite','Abyssal Veteran','Kill the Abyssal Sire 50 times.','Abyssal Sire'],
+['Elite','Perfect Sire','Defeat Abyssal Sire without taking damage from tentacles, pools, explosions, or unprotected hits.','Abyssal Sire'],
+['Elite','Demonic Rebound',"Use the Vengeance spell to reflect the Abyssal Sire's explosion damage back to him.",'Abyssal Sire'],
+['Elite','Respiratory Runner','Kill the Abyssal Sire after only stunning him once.','Abyssal Sire'],
+['Elite','Alchemical Veteran','Kill the Alchemical Hydra 75 times.','Alchemical Hydra'],
+["Elite","Without Ralos' Light",'Kill Amoxliatl without losing any prayer points.','Amoxliatl'],
+['Elite','Amoxliatl Speed-Chaser','Kill Amoxliatl in less than 30 seconds.','Amoxliatl'],
+['Elite','Relaxxor','Kill Araxxor after destroying six eggs.','Araxxor'],
+['Elite','Araxxor Speed-Trialist','Kill Araxxor 4 times in 10:00.','Araxxor'],
+['Elite','Araxxor Veteran','Kill Araxxor 25 times.','Araxxor'],
+['Elite','Reflecting on This Encounter','Kill a Basilisk Knight.','Basilisk Knight'],
+['Elite','Brutus Speed-Trialist','Kill Brutus in less than 2 seconds.','Brutus'],
+['Elite','Callisto Veteran','Kill Callisto 20 times.','Callisto'],
+['Elite','Unrequired Antifire','Kill Cerberus without taking damage from any lava pools.','Cerberus'],
+['Elite','Ghost Buster','Kill Cerberus after successfully negating 6 or more attacks from Summoned Souls.','Cerberus'],
+['Elite','Anti-Bite Mechanics','Kill Cerberus without taking any melee damage.','Cerberus'],
+['Elite','Cerberus Veteran','Kill Cerberus 75 times.','Cerberus'],
+['Elite','Perfectly Balanced','Kill the Vanguards without them resetting their health.','Chambers of Xeric'],
+['Elite','Undying Raid Team','Complete a Chambers of Xeric raid without anyone dying.','Chambers of Xeric'],
+['Elite','Redemption Enthusiast','Kill the Abyssal Portal without forcing Vespula to land.','Chambers of Xeric'],
+['Elite','Kill It with Fire','Finish off the Ice Demon with a fire spell.','Chambers of Xeric'],
+["Elite","Together We'll Fall",'Kill the Vanguards within 10 seconds of the first one dying.','Chambers of Xeric'],
+['Elite','Cryo No More','Receive kill-credit for the Ice Demon without taking any damage.','Chambers of Xeric'],
+['Elite','Dancing with Statues','Receive kill-credit for a Stone Guardian without taking damage from falling rocks.','Chambers of Xeric'],
+['Elite','Mutta-diet','Kill the Muttadile without letting her or her baby recover hitpoints from the meat tree.','Chambers of Xeric'],
+['Elite','Blizzard Dodger','Receive kill-credit for the Ice Demon without activating the Protect from Range prayer.','Chambers of Xeric'],
+['Elite','Chambers of Xeric Veteran','Complete the Chambers of Xeric 25 times.','Chambers of Xeric'],
+['Elite','Shayzien Specialist','Receive kill-credit for a Lizardman Shaman without taking damage from any shamans.','Chambers of Xeric'],
+['Elite','Dust Seeker','Complete a Chambers of Xeric Challenge mode raid in the target time.','CoX Challenge Mode'],
+['Elite','Chaos Elemental Veteran','Kill the Chaos Elemental 25 times.','Chaos Elemental'],
+['Elite','Reminisce','Kill Commander Zilyana in a private instance with melee only.','Commander Zilyana'],
+['Elite','Commander Zilyana Veteran','Kill Commander Zilyana 100 times.','Commander Zilyana'],
+['Elite','Chicken Killer','Kill the Corporeal Beast solo.','Corporeal Beast'],
+['Elite','Hot on Your Feet','Kill the Corporeal Beast without anyone killing the dark core or taking damage.','Corporeal Beast'],
+['Elite','Finding the Weak Spot','Finish off the Corporeal Beast with a Halberd special attack.','Corporeal Beast'],
+['Elite','Corporeal Beast Veteran','Kill the Corporeal Beast 25 times.','Corporeal Beast'],
+['Elite','Corrupted Gauntlet Veteran','Complete the Corrupted Gauntlet 5 times.','Corrupted Hunllef'],
+['Elite','3, 2, 1 - Mage','Kill the Corrupted Hunllef without taking damage off prayer.','Corrupted Hunllef'],
+['Elite','Crystalline Warrior','Kill the Crystalline Hunllef with a full set of perfected armour equipped.','Crystalline Hunllef'],
+['Elite','3, 2, 1 - Range','Kill the Crystalline Hunllef without taking damage off prayer.','Crystalline Hunllef'],
+['Elite','Egniol Diet','Kill the Crystalline Hunllef without making an egniol potion within the Gauntlet.','Crystalline Hunllef'],
+['Elite','Wolf Puncher','Kill the Crystalline Hunllef without making more than one attuned weapon.','Crystalline Hunllef'],
+['Elite','Gauntlet Veteran','Complete the Gauntlet 5 times.','Crystalline Hunllef'],
+['Elite','From One King to Another','Kill Dagannoth Prime using a Rune Thrownaxe special attack, bounced off Dagannoth Rex.','Dagannoth Kings'],
+['Elite','Death to the Seer King','Kill Dagannoth Prime whilst under attack by Dagannoth Supreme and Dagannoth Rex.','Dagannoth Kings'],
+['Elite','Toppling the Diarchy','Kill Dagannoth Rex and one other Dagannoth king at the exact same time.','Dagannoth Kings'],
+['Elite','Death to the Warrior King','Kill Dagannoth Rex whilst under attack by Dagannoth Supreme and Dagannoth Prime.','Dagannoth Kings'],
+['Elite','Rapid Succession','Kill all three Dagannoth Kings within 9 seconds of the first one.','Dagannoth Kings'],
+['Elite','Death to the Archer King','Kill Dagannoth Supreme whilst under attack by Dagannoth Prime and Dagannoth Rex.','Dagannoth Kings'],
+['Elite','If Gorillas Could Fly','Kill a Demonic Gorilla.','Demonic Gorilla'],
+['Elite','Hitting Them Where It Hurts','Finish off a Demonic Gorilla with a demonbane weapon.','Demonic Gorilla'],
+['Elite','Exposed Doom','Defeat the Doom of Mokhaiotl during its Melee charge phase.','Doom of Mokhaiotl'],
+['Elite','Doom Crawler','Defeat the Doom of Mokhaiotl level 1 in less than 30 seconds.','Doom of Mokhaiotl'],
+['Elite','Doom Adept','Defeat the Doom of Mokhaiotl at delve level 3.','Doom of Mokhaiotl'],
+['Elite','Duke Sucellus Adept','Kill Duke Sucellus once.','Duke Sucellus'],
+['Elite','Duke Sucellus Speed-Trialist','Kill Duke Sucellus in less than 1:00 without a slayer task.','Duke Sucellus'],
+['Elite','Furball','Complete Wave 4 without taking avoidable damage from a Manticore.','Fortis Colosseum'],
+['Elite','I was here first!','Kill a Jaguar Warrior using a Claw-type weapon special attack.','Fortis Colosseum'],
+['Elite','Denied','Complete Wave 7 without the Minotaur ever healing other enemies.','Fortis Colosseum'],
+['Elite','Fragment of Seren Speed-Trialist','Kill The Fragment of Seren in less than 4 minutes.','Fragment of Seren'],
+['Elite','Galvek Speed-Trialist','Kill Galvek in less than 3 minutes.','Galvek'],
+['Elite','Ourg Freezer II','Kill General Graardor without him attacking any players.','General Graardor'],
+['Elite','General Graardor Veteran','Kill General Graardor 100 times.','General Graardor'],
+['Elite','Hard Hitter','Kill the Giant Mole with 4 or fewer instances of damage.','Giant Mole'],
+['Elite','Glough Speed-Trialist','Kill Glough in less than 2 minutes and 30 seconds.','Glough'],
+['Elite','From Dusk...','Kill the Grotesque Guardians 10 times without leaving the instance.','Grotesque Guardians'],
+['Elite','Grotesque Guardians Speed-Trialist','Kill the Grotesque Guardians in less than 2 minutes.','Grotesque Guardians'],
+['Elite','Grotesque Guardians Veteran','Kill the Grotesque Guardians 50 times.','Grotesque Guardians'],
+['Elite','Perfect Grotesque Guardians','Complete Grotesque Guardians while satisfying multiple task requirements simultaneously.','Grotesque Guardians'],
+['Elite','Done before Dusk',"Kill the Grotesque Guardians before Dusk uses his prison attack for a second time.",'Grotesque Guardians'],
+['Elite','Hespori Speed-Trialist','Kill the Hespori in less than 48 seconds.','Hespori'],
+['Elite','Plant-Based Diet','Kill Hespori without losing any prayer points.','Hespori'],
+["Elite","K'ril Tsutsaroth Veteran","Kill K'ril Tsutsaroth 100 times.","K'ril Tsutsaroth"],
+['Elite','Demonic Defence',"Kill K'ril Tsutsaroth in a private instance without taking any of his melee hits.","K'ril Tsutsaroth"],
+['Elite','The Bane of Demons',"Defeat K'ril Tsutsaroth in a private instance using only demonbane spells.","K'ril Tsutsaroth"],
+['Elite','Kalphite Queen Veteran','Kill the Kalphite Queen 50 times.','Kalphite Queen'],
+['Elite','Prayer Smasher',"Kill the Kalphite Queen using only the Verac's Flail as a weapon.",'Kalphite Queen'],
+['Elite','Insect Deflection','Kill the Kalphite Queen by using the Vengeance spell as the finishing blow.','Kalphite Queen'],
+['Elite','Ten-tacles','Kill the Kraken 50 times in a private instance without leaving the room.','Kraken'],
+["Elite","Kree'arra Veteran","Kill Kree'arra 100 times.","Kree'arra"],
+['Elite','Leviathan Speed-Trialist','Kill the Leviathan in less than 1:50 without a slayer task.','Leviathan'],
+['Elite','Leviathan Adept','Kill the Leviathan once.','Leviathan'],
+['Elite','High Hitter','Defeat a Moon before they start their second special attack.','Moons of Peril'],
+['Elite','Nex Veteran','Kill Nex once.','Nex'],
+['Elite','Nex Survivors','Kill Nex without anyone dying.','Nex'],
+['Elite','Phantom Muspah Veteran','Kill the Phantom Muspah 25 times.','Phantom Muspah'],
+['Elite','Versatile Drainer',"Drain the Phantom Muspah's Prayer with three different sources in one kill.",'Phantom Muspah'],
+['Elite','Phantom Muspah Speed-Trialist','Kill the Phantom Muspah in less than 3 minutes without a slayer task.','Phantom Muspah'],
+["Elite","Can't Escape",'Kill the Phantom Muspah without running.','Phantom Muspah'],
+["Elite","Phosani's Veteran","Kill Phosani's Nightmare once.","Phosani's Nightmare"],
+['Elite','No time to pray','Kill the Royal Titans without losing any prayer points.','Royal Titans'],
+['Elite','Scorpia Veteran','Kill Scorpia 25 times.','Scorpia'],
+['Elite','Up for the Challenge','Kill Skotizo without equipping a demonbane weapon.','Skotizo'],
+['Elite','Demon Evasion','Kill Skotizo without taking any damage.','Skotizo'],
+['Elite','Hueycoatl Speed-Trialist','Kill the Hueycoatl in 2:30.','Hueycoatl'],
+['Elite','Hueycoatl Veteran','Kill the Hueycoatl 25 times.','Hueycoatl'],
+['Elite','Perfect Hueycoatl','Kill the Hueycoatl perfectly 5 times without leaving.','Hueycoatl'],
+['Elite','Mimic Veteran','Kill the Mimic once.','The Mimic'],
+['Elite','Nightmare (5-Scale) Speed-Trialist','Defeat the Nightmare (5-scale) in less than 5 minutes.','The Nightmare'],
+['Elite','Explosion!','Kill two Nightmare Husks at the same time.','The Nightmare'],
+['Elite','Sleep Tight','Kill the Nightmare solo.','The Nightmare'],
+['Elite','Nightmare Veteran','Kill The Nightmare 25 times.','The Nightmare'],
+['Elite','Nightmare (Solo) Speed-Trialist','Defeat the Nightmare (Solo) in less than 23 minutes.','The Nightmare'],
+['Elite','Theatre of Blood Veteran','Complete the Theatre of Blood 25 times.','Theatre of Blood'],
+['Elite','Nylocas, On the Rocks','In Theatre of Blood: Entry Mode, freeze any 4 Nylocas with a single Ice Barrage spell.','Theatre of Blood: Entry Mode'],
+['Elite','No-Pillar',"Survive Verzik Vitur's pillar phase in Theatre of Blood: Entry Mode without losing a pillar.",'Theatre of Blood: Entry Mode'],
+['Elite','Just To Be Safe','Defeat Sotetseg in Theatre of Blood: Entry Mode after having split the big ball.','Theatre of Blood: Entry Mode'],
+['Elite','They Won\'t Expect This','In Theatre of Blood: Entry Mode, enter the Pestilent Bloat room from the opposite side.','Theatre of Blood: Entry Mode'],
+['Elite','Anticoagulants','Defeat the Maiden of Sugadinti in Theatre of Blood: Entry Mode without letting any bloodspawn live.','Theatre of Blood: Entry Mode'],
+["Elite","Don't Look at Me!",'Kill Xarpus in Theatre of Blood: Entry Mode without him reflecting any damage.','Theatre of Blood: Entry Mode'],
+['Elite','Appropriate Tools','Defeat the Pestilent Bloat in Theatre of Blood: Entry Mode with everyone having a salve amulet.','Theatre of Blood: Entry Mode'],
+['Elite','Pass It On','In Theatre of Blood: Entry Mode, successfully pass on the green ball to a team mate.','Theatre of Blood: Entry Mode'],
+['Elite','Chally Time','Defeat the Pestilent Bloat in Theatre of Blood: Entry Mode by using a halberd special.','Theatre of Blood: Entry Mode'],
+['Elite','Attack, Step, Wait',"Survive Verzik Vitur's second phase in Theatre of Blood: Entry Mode without anyone getting bounced.",'Theatre of Blood: Entry Mode'],
+["Elite","Spec'd Out",'Kill the Thermonuclear Smoke Devil using only special attacks.','Thermonuclear Smoke Devil'],
+['Elite','Thermonuclear Veteran','Kill the Thermonuclear Smoke Devil 20 times.','Thermonuclear Smoke Devil'],
+['Elite','Hazard Prevention','Kill the Thermonuclear Smoke Devil without it hitting anyone.','Thermonuclear Smoke Devil'],
+['Elite','Unending Torment','Kill a Tormented Demon.','Tormented Demon'],
+['Elite','Rapid Reload','Hit three Tormented Demons within 3 seconds using a ballista or a crossbow.','Tormented Demon'],
+['Elite','Through Fire and Flames',"Kill a Tormented Demon whilst their shield is inactive.",'Tormented Demon'],
+['Elite','Two Times the Torment','Kill two Tormented Demons within 2 seconds.','Tormented Demon'],
+['Elite','Facing Jad Head-on III',"Complete TzHaar-Ket-Rak's second challenge with only melee.","TzHaar-Ket-Rak's Challenges"],
+["Elite","TzHaar-Ket-Rak's Speed-Trialist","Complete TzHaar-Ket-Rak's first challenge in less than 45 seconds.","TzHaar-Ket-Rak's Challenges"],
+['Elite','The II Jad Challenge',"Complete TzHaar-Ket-Rak's second challenge.","TzHaar-Ket-Rak's Challenges"],
+['Elite','Half-Way There','Kill a Jal-Zek within the Inferno.','TzKal-Zuk'],
+['Elite','Facing Jad Head-on','Complete the Fight Caves with only melee.','TzTok-Jad'],
+['Elite','Fight Caves Veteran','Complete the Fight Caves once.','TzTok-Jad'],
+['Elite','A Near Miss!','Complete the Fight Caves after surviving a hit from TzTok-Jad without praying.','TzTok-Jad'],
+['Elite','Vardorvis Adept','Kill Vardorvis once.','Vardorvis'],
+['Elite','Vardorvis Speed-Trialist','Kill Vardorvis in less than 1:15 without a slayer task.','Vardorvis'],
+['Elite','Venenatis Veteran','Kill Venenatis 20 times.','Venenatis'],
+["Elite","Vet'eran","Kill Vet'ion 20 times.","Vet'ion"],
+["Elite","Stick 'em With the Pointy End",'Kill Vorkath using melee weapons only.','Vorkath'],
+['Elite','Zombie Destroyer',"Kill Vorkath's zombified spawn without using crumble undead.",'Vorkath'],
+['Elite','Vorkath Veteran','Kill Vorkath 50 times.','Vorkath'],
+['Elite','Tentacular','Kill the Whisperer whilst only being on the Arceuus spellbook.','Whisperer'],
+['Elite','Whisperer Speed-Trialist','Kill the Whisperer in less than 3:00 without a slayer task.','Whisperer'],
+['Elite','Whisperer Adept','Kill the Whisperer once.','Whisperer'],
+['Elite','Yama Adept','Defeat Yama once.','Yama'],
+['Elite','Yama Speed-Trialist','Defeat Yama in an average time of under 3:38 over your last four kills.','Yama'],
+['Elite','Back so soon?','Defeat Yama without the judge being attacked with the wrong style.','Yama'],
+['Elite','Team Player','Receive imbued tephra from a golem.','Zalcano'],
+['Elite','The Spurned Hero','Kill Zalcano as the player who has dealt the most damage to her.','Zalcano'],
+['Elite','Perfect Zalcano','Kill Zalcano 5 times in a row without leaving or getting hit by falling rocks.','Zalcano'],
+['Elite','Zalcano Veteran','Kill Zalcano 25 times.','Zalcano'],
+['Elite','Snake. Snake!? Snaaaaaake!','Kill 3 Zulrah Snakelings simultaneously.','Zulrah'],
+['Elite','Snake Rebound','Kill Zulrah by using the Vengeance spell as the finishing blow.','Zulrah'],
+['Elite','Zulrah Veteran','Kill Zulrah 75 times.','Zulrah'],
+['Elite','Zulrah Speed-Trialist','Kill Zulrah in less than 1 minute 20 seconds, without a slayer task.','Zulrah'],
+['Master',"Don't Flame Me",'Kill the Alchemical Hydra without being hit by the flame wall attack.','Alchemical Hydra'],
+['Master','The Flame Skipper','Kill the Alchemical Hydra without letting it spawn a flame wall attack.','Alchemical Hydra'],
+['Master','Unrequired Antipoisons','Kill the Alchemical Hydra without being hit by the acid pool attack.','Alchemical Hydra'],
+['Master','Mixing Correctly','Kill the Alchemical Hydra without empowering it.','Alchemical Hydra'],
+['Master','Alcleanical Hydra','Kill the Alchemical Hydra without taking any damage.','Alchemical Hydra'],
+['Master','Alchemical Speed-Chaser','Kill the Alchemical Hydra in less than 1 minute 45 seconds.','Alchemical Hydra'],
+['Master','Lightning Lure','Kill the Alchemical Hydra without being hit by the lightning attack.','Alchemical Hydra'],
+['Master','Working Overtime','Kill the Alchemical Hydra 15 times without leaving the room.','Alchemical Hydra'],
+['Master','Alchemical Master','Kill the Alchemical Hydra 150 times.','Alchemical Hydra'],
+['Master','Araxxor Speed-Chaser','Kill Araxxor 5 times in 10:00.','Araxxor'],
+['Master','Perfect Araxxor','Defeat Araxxor without taking damage from multiple attack types and environmental hazards.','Araxxor'],
+['Master','Arachnid Lover','Kill Araxxor 10 times without leaving.','Araxxor'],
+['Master','Araxyte Betrayal','Have an Araxyte kill three other Araxytes.','Araxxor'],
+['Master','Let it seep in','Kill Araxxor without ever having venom or poison immunity.','Araxxor'],
+['Master','Araxxor Master','Kill Araxxor 75 times.','Araxxor'],
+['Master','Arooo No More','Kill Cerberus without any of the Summoned Souls being spawned.','Cerberus'],
+['Master','Cerberus Master','Kill Cerberus 150 times.','Cerberus'],
+['Master','Chambers of Xeric Master','Complete the Chambers of Xeric 75 times.','Chambers of Xeric'],
+['Master','No Time for Death','Clear the Tightrope room without killing any Deathly Mages or Deathly Rangers.','Chambers of Xeric'],
+['Master','Undying Raider','Complete a Chambers of Xeric solo raid without dying.','Chambers of Xeric'],
+['Master','Chambers of Xeric (Solo) Speed-Chaser','Complete a Chambers of Xeric (Solo) in less than 21 minutes.','Chambers of Xeric'],
+['Master','Perfect Olm (Trio)','Defeat Olm without team members taking specified damage types.','Chambers of Xeric'],
+['Master','Putting It Olm on the Line','Complete a Chambers of Xeric solo raid with more than 40,000 points.','Chambers of Xeric'],
+['Master','Playing with Lasers','Clear the Crystal Crabs room without wasting an orb after the first.','Chambers of Xeric'],
+['Master','Chambers of Xeric (Trio) Speed-Chaser','Complete a Chambers of Xeric (Trio) in less than 16 minutes and 30 seconds.','Chambers of Xeric'],
+['Master','A Not So Special Lizard','Prevent Olm from executing specific special attacks in penultimate phase.','Chambers of Xeric'],
+['Master','Anvil No More','Kill Tekton before he returns to his anvil for a second time.','Chambers of Xeric'],
+['Master','Stop Drop and Roll','Kill Vasa Nistirio before he performs his teleport attack for the second time.','Chambers of Xeric'],
+['Master','Blind Spot','Kill Tekton without taking any damage.','Chambers of Xeric'],
+['Master','Perfect Olm (Solo)','Defeat Olm in a solo raid without taking specified damage.','Chambers of Xeric'],
+['Master','Chambers of Xeric (5-Scale) Speed-Chaser','Complete a Chambers of Xeric (5-scale) in less than 15 minutes.','Chambers of Xeric'],
+['Master','Immortal Raider','Complete a Chambers of Xeric Challenge mode (Solo) raid without dying.','CoX Challenge Mode'],
+['Master','Immortal Raid Team','Complete a Chambers of Xeric: Challenge mode raid without anyone dying.','CoX Challenge Mode'],
+['Master','Chambers of Xeric: CM (Trio) Speed-Chaser','Complete a Chambers of Xeric: Challenge Mode (Trio) in less than 35 minutes.','CoX Challenge Mode'],
+['Master','Chambers of Xeric: CM (5-Scale) Speed-Chaser','Complete a Chambers of Xeric: Challenge Mode (5-scale) in less than 30 minutes.','CoX Challenge Mode'],
+['Master','Chambers of Xeric: CM (Solo) Speed-Chaser','Complete a Chambers of Xeric: Challenge Mode (Solo) in less than 45 minutes.','CoX Challenge Mode'],
+['Master','Chambers of Xeric: CM Master','Complete the Chambers of Xeric: Challenge Mode 10 times.','CoX Challenge Mode'],
+['Master','Moving Collateral','Kill Commander Zilyana in a private instance without attacking her directly.','Commander Zilyana'],
+['Master','Corporeal Beast Master','Kill the Corporeal Beast 50 times.','Corporeal Beast'],
+['Master','Perfect Corrupted Hunllef','Defeat the Corrupted Hunllef without damage from tornados, floor, stomp, prayer drain, or wrong weapon.','Corrupted Hunllef'],
+["Master","Defence Doesn't Matter II",'Kill the Corrupted Hunllef without making any armour within the Corrupted Gauntlet.','Corrupted Hunllef'],
+['Master','Corrupted Warrior','Kill the Corrupted Hunllef with a full set of perfected corrupted armour equipped.','Corrupted Hunllef'],
+['Master','Corrupted Gauntlet Speed-Chaser','Complete a Corrupted Gauntlet in less than 7 minutes and 30 seconds.','Corrupted Hunllef'],
+['Master','Corrupted Gauntlet Master','Complete the Corrupted Gauntlet 10 times.','Corrupted Hunllef'],
+["Master","Defence Doesn't Matter",'Kill the Crystalline Hunllef without making any armour within the Gauntlet.','Crystalline Hunllef'],
+['Master','Perfect Crystalline Hunllef','Defeat the Crystalline Hunllef without damage from tornados, floor, stomp, prayer drain, or wrong weapon.','Crystalline Hunllef'],
+['Master','Gauntlet Master','Complete the Gauntlet 20 times.','Crystalline Hunllef'],
+['Master','Gauntlet Speed-Chaser','Complete the Gauntlet in less than 5 minutes.','Crystalline Hunllef'],
+['Master','Doom Chaser','Defeat the Doom of Mokhaiotl levels 1-8 in less than 10:00.','Doom of Mokhaiotl'],
+["Master","Mine's Better",'Defeat the Doom of Mokhaiotl levels 1-8 whilst always wearing a shield.','Doom of Mokhaiotl'],
+['Master','Mokhaiotl Drift','Defeat the Doom of Mokhaiotl at level 8 or above before he finishes the first burrow.','Doom of Mokhaiotl'],
+['Master','Doom Veteran','Defeat the Doom of Mokhaiotl at delve level 8.','Doom of Mokhaiotl'],
+['Master','Grub Patrol','Defeat the Doom of Mokhaiotl levels 1-8 without ever letting a grub be absorbed.','Doom of Mokhaiotl'],
+['Master','Perfect Duke Sucellus','Kill Duke Sucellus without taking any avoidable damage 5 times without leaving.','Duke Sucellus'],
+['Master','Duke Sucellus Master','Kill Duke Sucellus 50 times.','Duke Sucellus'],
+['Master','Duke Sucellus Speed-Chaser','Kill Duke Sucellus in less than 50 seconds without a slayer task.','Duke Sucellus'],
+['Master','Cold Feet','Kill Duke Sucellus without taking avoidable damage, whilst also never running.','Duke Sucellus'],
+['Master','One-off',"Complete Fortis Colosseum Wave 11 with 'Red Flag', 'Dynamic Duo', or 'Doom II' active.",'Fortis Colosseum'],
+['Master','Colosseum Speed-Chaser','Complete the Fortis Colosseum with a total time of 28:00 or less.','Fortis Colosseum'],
+['Master','Showboating','Defeat Sol Heredit using salute mechanic in all arena directions at low health.','Fortis Colosseum'],
+['Master','I Brought Mine Too','Defeat Sol Heredit using only a Spear, Hasta or Halberd.','Fortis Colosseum'],
+['Master','Sportsmanship','Defeat Sol Heredit once.','Fortis Colosseum'],
+["Master","... 'til Dawn",'Kill the Grotesque Guardians 20 times without leaving the instance.','Grotesque Guardians'],
+['Master','Grotesque Guardians Speed-Chaser','Kill the Grotesque Guardians in less than 1:40.','Grotesque Guardians'],
+['Master','Perfect Grotesque Guardians II','Kill the Grotesque Guardians 5 times in a row without leaving, completing the Perfect task.','Grotesque Guardians'],
+['Master','Hespori Speed-Chaser','Kill the Hespori in less than 36 seconds.','Hespori'],
+['Master','One Hundred Tentacles','Kill the Kraken 100 times in a private instance without leaving the room.','Kraken'],
+['Master','Collateral Damage',"Kill Kree'arra in a private instance without ever attacking him directly.","Kree'arra"],
+['Master','Swoop No More',"Kill Kree'arra in a private instance without taking any melee damage from the boss or bodyguards.","Kree'arra"],
+['Master','Perfect Leviathan','Kill the Leviathan perfectly 5 times without leaving.','Leviathan'],
+['Master','Leviathan Speed-Chaser','Kill the Leviathan in less than 1:25 without a slayer task.','Leviathan'],
+['Master','Leviathan Master','Kill the Leviathan 50 times.','Leviathan'],
+['Master','Serpentine Solo','Kill the Leviathan without stunning the boss more than once.','Leviathan'],
+['Master','A siphon will solve this','Kill Nex without letting her heal from her Blood Siphon special attack.','Nex'],
+['Master','There is no escape!','Kill Nex without anyone being hit by the Smoke Dash special attack.','Nex'],
+['Master','Contain this!','Kill Nex without anyone taking damage from any Ice special attack.','Nex'],
+['Master','Nex Master','Kill Nex 25 times.','Nex'],
+['Master','Nex Trio','Kill Nex with three or fewer players at the start of the fight.','Nex'],
+['Master','Shadows Move...','Kill Nex without anyone being hit by the Shadow Smash attack.','Nex'],
+['Master','Essence Farmer','Kill the Phantom Muspah 10 times in one trip.','Phantom Muspah'],
+['Master','More than just a ranged weapon','Kill the Phantom Muspah by only dealing damage with a salamander.','Phantom Muspah'],
+['Master','Phantom Muspah Master','Kill the Phantom Muspah 50 times.','Phantom Muspah'],
+['Master','Phantom Muspah Speed-Chaser','Kill the Phantom Muspah in less than 2 minutes without a slayer task.','Phantom Muspah'],
+['Master','Walk Straight Pray True','Kill the Phantom Muspah without taking any avoidable damage.','Phantom Muspah'],
+['Master','Space is Tight','Kill the Phantom Muspah whilst it is surrounded by spikes.','Phantom Muspah'],
+['Master','Dreamland Express',"Kill Phosani's Nightmare without a sleepwalker reaching her during the desperation phase.","Phosani's Nightmare"],
+["Master","Phosani's Master","Kill Phosani's Nightmare 5 times.","Phosani's Nightmare"],
+["Master","Phosani's Speedchaser","Kill Phosani's Nightmare within 7 minutes and 30 seconds.","Phosani's Nightmare"],
+['Master','I Would Simply React',"Kill Phosani's Nightmare without allowing your prayer to be disabled.","Phosani's Nightmare"],
+['Master','Crush Hour',"Kill Phosani's Nightmare while killing every parasite and husk in one hit.","Phosani's Nightmare"],
+['Master','Precise Positioning','Kill Skotizo with the final source of damage being a Chinchompa explosion.','Skotizo'],
+['Master','Is it a bird?','Kill the Hueycoatl using only dragonbane weaponry.','Hueycoatl'],
+['Master','Hueycoatl Speed-Chaser','Kill the Hueycoatl in 2:30 with five or fewer players.','Hueycoatl'],
+['Master','Perfect Nightmare','Defeat the Nightmare without players taking damage from rifts, parasites, flowers, surge, or spore effects.','The Nightmare'],
+['Master','Nightmare Master','Kill The Nightmare 50 times.','The Nightmare'],
+['Master','Nightmare (Solo) Speed-Chaser','Defeat the Nightmare (Solo) in less than 19 minutes.','The Nightmare'],
+['Master','Nightmare (5-Scale) Speed-Chaser','Defeat the Nightmare (5-scale) in less than 4 minutes.','The Nightmare'],
+['Master','Theatre of Blood Master','Complete the Theatre of Blood 75 times.','Theatre of Blood'],
+['Master','Perfect Xarpus','Defeat Xarpus without team damage; limit exhumed healing to twice.','Theatre of Blood'],
+['Master','Pop It','Kill Verzik without any Nylocas being frozen and without damage from Nylocas.','Theatre of Blood'],
+['Master','Can You Dance?','Kill Xarpus without anyone in the team using a ranged or magic weapon.','Theatre of Blood'],
+['Master','Perfect Bloat','Defeat Pestilent Bloat without team damage from flies, body parts, or stomp attack.','Theatre of Blood'],
+['Master','Perfect Sotetseg','Defeat Sotetseg without stepping on wrong tiles, getting hit by tornado, or damage off-prayer.','Theatre of Blood'],
+['Master','Back in My Day...','Complete the Theatre of Blood without any member equipping a Scythe of Vitur.','Theatre of Blood'],
+["Master","Can't Drain This",'Kill The Maiden of Sugadinti without anyone in the team losing any prayer points.','Theatre of Blood'],
+['Master','Theatre (5-Scale) Speed-Chaser','Complete the Theatre of Blood (5-scale) in less than 16 minutes.','Theatre of Blood'],
+['Master','Perfect Nylocas','Defeat Nylocas without wrong attack styles, pillar collapse, or off-prayer damage.','Theatre of Blood'],
+['Master','Two-Down','Kill the Pestilent Bloat before he shuts down for the third time.','Theatre of Blood'],
+['Master','Perfect Verzik','Defeat Verzik without team damage except correctly prayed magical/ranged attacks.','Theatre of Blood'],
+['Master','Perfect Maiden','Defeat the Maiden without team damage from spawns, trails, or off-prayer; prevent healing.','Theatre of Blood'],
+['Master','Theatre (Trio) Speed-Chaser','Complete the Theatre of Blood (Trio) in less than 20 minutes.','Theatre of Blood'],
+['Master','Theatre (4-Scale) Speed-Chaser','Complete the Theatre of Blood (4-scale) in less than 17 minutes.','Theatre of Blood'],
+['Master','A Timely Snack','Kill Sotetseg after surviving 3 ball attacks solo without anyone dying.','Theatre of Blood'],
+['Master','Theatre of Blood: SM Speed-Chaser','Complete the Theatre of Blood: Entry Mode in less than 17 minutes.','Theatre of Blood: Entry Mode'],
+['Master','Hard Mode? Completed It','Complete the Theatre of Blood: Hard Mode within the challenge time.','Theatre of Blood: HM'],
+['Master','Perfect Kephri','Defeat Kephri in a group without damage from explosions, attacks, scarabs, dung; no egg hatching.','Tombs of Amascut'],
+['Master','You are not prepared','Complete a full Tombs of Amascut raid using only internal supplies without dying.','Tombs of Amascut'],
+['Master','Perfect Ba-Ba','Defeat Ba-Ba without damage with all invocations; no sarcophagi opened.','Tombs of Amascut'],
+['Master','Perfect Akkha','Defeat Akkha without damage from attacks/specials with all invocations activated.','Tombs of Amascut'],
+['Master','Perfect Zebak','Defeat Zebak without poison/attack damage with limited jug pushing; all invocations.','Tombs of Amascut'],
+['Master','Tomb Raider','Complete the Tombs of Amascut 50 times.','Tombs of Amascut'],
+['Master','Perfect Wardens','Defeat the Wardens without avoidable damage with all invocations activated.','Tombs of Amascut'],
+['Master','Chompington','Defeat Zebak using only melee attacks without dying.','Tombs of Amascut'],
+['Master','Tombs Speed Runner','Complete the Tombs of Amascut (normal) within 18 minutes at any group size.','Tombs of Amascut'],
+["Master","Better get movin'",'Defeat Elidinis\' Warden in phase three with specific invocations without dying.','Tombs of Amascut'],
+['Master','Perfect Scabaras','Complete the Scabaras room in less than a minute without puzzle damage.','Tombs of Amascut'],
+['Master','Tomb Looter','Complete the Tombs of Amascut 25 times.','Tombs of Amascut'],
+['Master','Ba-Bananza','Defeat Ba-Ba with all invocations and path level 4+, without dying.','Tombs of Amascut: Expert'],
+['Master',"Rockin' around the croc",'Defeat Zebak with all invocations and path level 4+, without dying.','Tombs of Amascut: Expert'],
+["Master","Doesn't bug me",'Defeat Kephri with all invocations and path level 4+, without dying.','Tombs of Amascut: Expert'],
+['Master','Expert Tomb Looter','Complete the Tombs of Amascut (Expert mode) 25 times.','Tombs of Amascut: Expert'],
+['Master','Fancy feet','Complete Wardens phase three using only melee, in a group of 2+, with Insanity active.','Tombs of Amascut: Expert'],
+['Master','All out of medics',"Defeat Kephri without healing above 25% post-first down with Medic active.",'Tombs of Amascut: Expert'],
+['Master','Resourceful Raider',"Complete Tombs with 'On a diet' and 'Dehydration' invocations without dying.",'Tombs of Amascut: Expert'],
+['Master','Something of an expert myself','Complete Tombs at raid level 350+ without anyone dying.','Tombs of Amascut: Expert'],
+["Master","Warden't you believe it",'Defeat the Wardens with all invocations at expert level without dying.','Tombs of Amascut: Expert'],
+['Master','But... Damage','Complete Tombs without anyone wearing tier 75+ equipment.','Tombs of Amascut: Expert'],
+['Master','Three Times the Thrashing','Kill three Tormented Demons within 3 seconds.','Tormented Demon'],
+["Master","Supplies? Who Needs 'em?","Complete TzHaar-Ket-Rak's third challenge without anything in inventory.","TzHaar-Ket-Rak's Challenges"],
+['Master','Multi-Style Specialist',"Complete TzHaar-Ket-Rak's third challenge using different combat styles per JalTok-Jad.","TzHaar-Ket-Rak's Challenges"],
+['Master','Facing Jad Head-on IV',"Complete TzHaar-Ket-Rak's fourth challenge with only melee.","TzHaar-Ket-Rak's Challenges"],
+['Master','The IV Jad Challenge',"Complete TzHaar-Ket-Rak's fourth challenge.","TzHaar-Ket-Rak's Challenges"],
+["Master","TzHaar-Ket-Rak's Speed-Chaser","Complete TzHaar-Ket-Rak's third challenge in less than 3 minutes.","TzHaar-Ket-Rak's Challenges"],
+['Master',"Nibblers, Begone!",'Kill TzKal-Zuk without letting a pillar fall before wave 67.','TzKal-Zuk'],
+['Master','Denying the Healers','Complete the Fight Caves without letting any of the Yt-MejKot heal.','TzTok-Jad'],
+['Master','Fight Caves Master','Complete the Fight Caves 5 times.','TzTok-Jad'],
+['Master','Fight Caves Speed-Chaser','Complete the Fight Caves in less than 30 minutes.','TzTok-Jad'],
+['Master','You Didn\'t Say Anything About a Bat','Complete the Fight Caves without being attacked by a Tz-Kih.','TzTok-Jad'],
+['Master','Budget Cutter','Kill Vardorvis with gear worth 2m or less in total.','Vardorvis'],
+['Master','Vardorvis Master','Kill Vardorvis 50 times.','Vardorvis'],
+['Master','Perfect Vardorvis','Kill Vardorvis perfectly 5 times without leaving.','Vardorvis'],
+['Master','Vardorvis Speed-Chaser','Kill Vardorvis in less than 1:05 without a slayer task.','Vardorvis'],
+['Master','Vorkath Speed-Chaser','Kill Vorkath in less than 1 minute and 15 seconds.','Vorkath'],
+['Master','Extended Encounter','Kill Vorkath 10 times without leaving his area.','Vorkath'],
+['Master','The Walk','Hit Vorkath 12 times during the acid special without rapid fire or pool damage.','Vorkath'],
+['Master','Dodging the Dragon','Kill Vorkath 5 times without special attack damage and without leaving.','Vorkath'],
+['Master','Vorkath Master','Kill Vorkath 100 times.','Vorkath'],
+['Master','Perfect Whisperer','Kill the Whisperer without taking avoidable damage 5 times without leaving.','Whisperer'],
+['Master','Whisperer Speed-Chaser','Kill the Whisperer in less than 2:25 without a slayer task.','Whisperer'],
+['Master','Whisperer Master','Kill the Whisperer 50 times.','Whisperer'],
+['Master','Yama Veteran','Defeat Yama 50 times.','Yama'],
+['Master','Yama Speed-Chaser','Defeat Yama in an average time of under 3:00 over your last four kills.','Yama'],
+['Master','Shadow dancer','Defeat Yama without shadow damage and within one tile of crash center.','Yama'],
+['Master','No toppings, no drinks, thanks','Defeat Yama without healing beyond plain pizza or drinking potions.','Yama'],
+['Master','Fire fighter','Defeat Yama without fire damage and only killing void flares with specials.','Yama'],
+['Master','Zulrah Master','Kill Zulrah 150 times.','Zulrah'],
+['Master','Zulrah Speed-Chaser','Kill Zulrah in less than 1 minute, without a slayer task.','Zulrah'],
+['Master','Perfect Zulrah','Kill Zulrah without damage from Snakelings, Venom Clouds, Green or Crimson phase.','Zulrah'],
+['Grandmaster','Alchemical Speed-Runner','Kill the Alchemical Hydra in less than 1 minute 20 seconds.','Alchemical Hydra'],
+['Grandmaster','No Pressure',"Kill the Alchemical Hydra using only Dharok's Greataxe whilst having no more than 10 Hitpoints.",'Alchemical Hydra'],
+['Grandmaster','Swimming in Venom','Kill Araxxor without the boss ever moving.','Araxxor'],
+['Grandmaster','Perfect Araxxor 2','Kill Araxxor perfectly, without hitting it during the enrage phase.','Araxxor'],
+['Grandmaster','Araxxor Speed-Runner','Kill Araxxor 6 times in 10:00.','Araxxor'],
+['Grandmaster','Chambers of Xeric (5-Scale) Speed-Runner','Complete a Chambers of Xeric (5-scale) within 12:30.','Chambers of Xeric'],
+['Grandmaster','Chambers of Xeric (Trio) Speed-Runner','Complete a Chambers of Xeric (Trio) within 14:30.','Chambers of Xeric'],
+['Grandmaster','Chambers of Xeric Grandmaster','Complete the Chambers of Xeric 150 times.','Chambers of Xeric'],
+['Grandmaster','Chambers of Xeric (Solo) Speed-Runner','Complete a Chambers of Xeric (Solo) within 17 minutes.','Chambers of Xeric'],
+['Grandmaster','Chambers of Xeric: CM (Trio) Speed-Runner','Complete a Chambers of Xeric: Challenge Mode (Trio) within 27 minutes.','CoX Challenge Mode'],
+['Grandmaster','Chambers of Xeric: CM Grandmaster','Complete the Chambers of Xeric: Challenge Mode 25 times.','CoX Challenge Mode'],
+['Grandmaster','Chambers of Xeric: CM (5-Scale) Speed-Runner','Complete a Chambers of Xeric: Challenge Mode (5-scale) within 25 minutes.','CoX Challenge Mode'],
+['Grandmaster','Chambers of Xeric: CM (Solo) Speed-Runner','Complete a Chambers of Xeric: Challenge Mode (Solo) within 38:30.','CoX Challenge Mode'],
+['Grandmaster','Animal Whisperer','Kill Commander Zilyana in a private instance without taking any damage.','Commander Zilyana'],
+['Grandmaster','Peach Conjurer','Kill Commander Zilyana 50 times in a privately rented instance.','Commander Zilyana'],
+['Grandmaster','Egniol Diet II','Kill the Corrupted Hunllef without making an egniol potion.','Corrupted Hunllef'],
+['Grandmaster','Corrupted Gauntlet Grandmaster','Complete the Corrupted Gauntlet 50 times.','Corrupted Hunllef'],
+['Grandmaster','Wolf Puncher II','Kill the Corrupted Hunllef without making more than one attuned weapon.','Corrupted Hunllef'],
+['Grandmaster','Corrupted Gauntlet Speed-Runner','Complete the Corrupted Gauntlet within 6:30.','Corrupted Hunllef'],
+['Grandmaster','Gauntlet Speed-Runner','Complete the Gauntlet in less than 4 minutes.','Crystalline Hunllef'],
+['Grandmaster','Duel of Mokhaiotl','Defeat the Doom of Mokhaiotl levels 1-8 whilst only damaging the boss with one-handed melee attacks.','Doom of Mokhaiotl'],
+['Grandmaster','Perfect Doom','Defeat the Doom of Mokhaiotl without taking damage, letting grubs be absorbed, or stepping in acid blood.','Doom of Mokhaiotl'],
+['Grandmaster','The Praying Mantis','Defeat the Doom of Mokhaiotl without restoring prayer points through any method.','Doom of Mokhaiotl'],
+['Grandmaster','Doom Racer','Defeat the Doom of Mokhaiotl (levels 1-8) within 7:15.','Doom of Mokhaiotl'],
+['Grandmaster','Darkness Is Your Ally?','Defeat the Doom of Mokhaiotl without equipping a demonbane weapon.','Doom of Mokhaiotl'],
+["Grandmaster","It's Dark Down Here",'Defeat the Doom of Mokhaiotl at delve level 16.','Doom of Mokhaiotl'],
+['Grandmaster','Mopping up','Clear at least 8 acid splats in a single Volatile Earth special attack.','Doom of Mokhaiotl'],
+['Grandmaster','Duke Sucellus Sleeper','Kill Awakened Duke Sucellus.','Duke Sucellus'],
+['Grandmaster','Mirror Image','Kill Duke Sucellus whilst only attacking on the same tick Duke attacks.','Duke Sucellus'],
+['Grandmaster','Duke Sucellus Speed-Runner','Kill Duke Sucellus in less than 40 seconds without a slayer task.','Duke Sucellus'],
+['Grandmaster','Reinforcements','Defeat Sol Heredit with specific modifiers active.','Fortis Colosseum'],
+['Grandmaster','Slow Dancing in the Sand','Defeat Sol Heredit without running during the fight.','Fortis Colosseum'],
+['Grandmaster','Perfect Footwork','Defeat Fortis Colosseum without taking damage from Spear, Shield, Grapple or Triple Attack.','Fortis Colosseum'],
+['Grandmaster','Colosseum Speed-Runner','Complete the Fortis Colosseum with a total time of 24:00 or less.','Fortis Colosseum'],
+['Grandmaster','Colosseum Grand Champion','Defeat Sol Heredit 10 times.','Fortis Colosseum'],
+['Grandmaster','Keep Away','Kill General Graardor in a private instance without taking damage.','General Graardor'],
+['Grandmaster','Defence Matters','Kill General Graardor 2 times consecutively without taking damage from bodyguards.','General Graardor'],
+['Grandmaster','Ourg Killer','Kill General Graardor 15 times in a private instance.','General Graardor'],
+['Grandmaster','Grotesque Guardians Speed-Runner','Kill the Grotesque Guardians in less than 1:20.','Grotesque Guardians'],
+['Grandmaster','Demon Whisperer',"Kill K'ril Tsutsaroth without ever being hit by bodyguards.","K'ril Tsutsaroth"],
+['Grandmaster','Ash Collector',"Kill K'ril Tsutsaroth 20 times in a private instance.","K'ril Tsutsaroth"],
+['Grandmaster','The Worst Ranged Weapon',"Kill Kree'arra by only dealing damage with a salamander.","Kree'arra"],
+['Grandmaster','Feather Hunter',"Kill Kree'arra 30 times in a private instance.","Kree'arra"],
+['Grandmaster','Leviathan Sleeper','Kill the Awakened Leviathan.','Leviathan'],
+['Grandmaster','Leviathan Speed-Runner','Kill the Leviathan in less than 1:10 without a slayer task.','Leviathan'],
+['Grandmaster','Unconventional','Kill the Leviathan using only Mithril ammunition with no more than 25 Hitpoints.','Leviathan'],
+['Grandmaster','Nex Duo','Kill Nex with two or fewer players at the start.','Nex'],
+['Grandmaster','Perfect Nex','Kill Nex whilst completing multiple specific requirements.','Nex'],
+['Grandmaster','I should see a doctor','Kill Nex whilst a player is coughing.','Nex'],
+['Grandmaster','Phantom Muspah Speed-Runner','Kill the Phantom Muspah in less than 1:30 without a slayer task.','Phantom Muspah'],
+['Grandmaster','Phantom Muspah Manipulator','Kill the Phantom Muspah whilst completing multiple specific requirements.','Phantom Muspah'],
+["Grandmaster","Phosani's Grandmaster","Kill Phosani's Nightmare 25 times.","Phosani's Nightmare"],
+["Grandmaster","Perfect Phosani's Nightmare","Kill Phosani's Nightmare while only taking specific damage types.","Phosani's Nightmare"],
+["Grandmaster","Can't Wake Up","Kill Phosani's Nightmare 5 times in a row without leaving.","Phosani's Nightmare"],
+["Grandmaster","Phosani's Speedrunner","Kill Phosani's Nightmare within 6 minutes.","Phosani's Nightmare"],
+['Grandmaster','Hueycoatl Speed-Runner','Kill the Hueycoatl in 2:30 with three or fewer players.','Hueycoatl'],
+['Grandmaster','Nightmare (5-Scale) Speed-Runner','Defeat the Nightmare (5-scale) within 3:30.','The Nightmare'],
+['Grandmaster','Terrible Parent','Kill the Nightmare solo without Parasites healing for more than 100 health.','The Nightmare'],
+['Grandmaster','Nightmare (Solo) Speed-Runner','Defeat the Nightmare (Solo) within 16 minutes.','The Nightmare'],
+['Grandmaster','A Long Trip','Kill the Nightmare without any player losing prayer points.','The Nightmare'],
+['Grandmaster','Theatre (Duo) Speed-Runner','Complete the Theatre of Blood (Duo) within 26 minutes.','Theatre of Blood'],
+['Grandmaster','Theatre (Trio) Speed-Runner','Complete the Theatre of Blood (Trio) within 17:30.','Theatre of Blood'],
+['Grandmaster','Morytania Only','Complete the Theatre of Blood without equipping non-barrows weapons (except Dawnbringer).','Theatre of Blood'],
+['Grandmaster','Perfect Theatre','Complete the Theatre of Blood without deaths, with all team members meeting specific requirements.','Theatre of Blood'],
+['Grandmaster','Theatre (4-Scale) Speed-Runner','Complete the Theatre of Blood (4-scale) within 15 minutes.','Theatre of Blood'],
+['Grandmaster','Theatre (5-Scale) Speed-Runner','Complete the Theatre of Blood (5-scale) within 14:15.','Theatre of Blood'],
+['Grandmaster','Theatre of Blood Grandmaster','Complete the Theatre of Blood 150 times.','Theatre of Blood'],
+['Grandmaster','Theatre: HM (4-Scale) Speed-Runner','Complete the Theatre of Blood: Hard Mode (4-scale) within 21 minutes.','Theatre of Blood: HM'],
+['Grandmaster','Harder Mode II','Defeat Xarpus in Theatre of Blood: Hard Mode without taking damage.','Theatre of Blood: HM'],
+['Grandmaster','Nylo Sniper','Defeat Verzik in Theatre of Blood: Hard Mode without team causing Nylocas to explode.','Theatre of Blood: HM'],
+['Grandmaster','Theatre: HM (5-Scale) Speed-Runner','Complete the Theatre of Blood: Hard Mode (5-scale) within 19 minutes.','Theatre of Blood: HM'],
+['Grandmaster','Theatre: HM (Trio) Speed-Runner','Complete the Theatre of Blood: Hard Mode (Trio) within 23 minutes.','Theatre of Blood: HM'],
+['Grandmaster','Theatre of Blood: HM Grandmaster','Complete the Theatre of Blood: Hard Mode 50 times.','Theatre of Blood: HM'],
+['Grandmaster','Personal Space','Defeat Pestilent Bloat (Hard Mode) with 3+ people without standing on each other.','Theatre of Blood: HM'],
+['Grandmaster','Pack Like a Yak','Complete Theatre of Blood: Hard Mode within challenge time, no deaths, no supply chest purchases.','Theatre of Blood: HM'],
+['Grandmaster','Stop Right There!','Defeat Maiden in Theatre of Blood: Hard Mode without blood spawns creating more than 15 trails.','Theatre of Blood: HM'],
+['Grandmaster','Team Work Makes the Dream Work',"Survive Verzik's yellow blast with active tornadoes in Theatre of Blood: Hard Mode.",'Theatre of Blood: HM'],
+['Grandmaster','Harder Mode I','Defeat Sotetseg in Theatre of Blood: Hard Mode without sharing ball, deaths, or taking damage.','Theatre of Blood: HM'],
+['Grandmaster','Royal Affairs','Complete Nylocas room (Hard Mode) without letting Prinkipas change styles.','Theatre of Blood: HM'],
+['Grandmaster','Harder Mode III',"Defeat Verzik in Theatre of Blood: Hard Mode without melee attacks in her third phase.",'Theatre of Blood: HM'],
+['Grandmaster','Perfection of Apmeken',"Complete 'Perfect Apmeken' and 'Perfect Ba-Ba' in a single ToA run.",'Tombs of Amascut: Expert'],
+['Grandmaster','Perfection of Crondis',"Complete 'Perfect Crondis' and 'Perfect Zebak' in a single ToA run.",'Tombs of Amascut: Expert'],
+['Grandmaster','Perfection of Scabaras',"Complete 'Perfect Scabaras' and 'Perfect Kephri' in a single ToA run.",'Tombs of Amascut: Expert'],
+['Grandmaster','Perfection of Het',"Complete 'Perfect Het' and 'Perfect Akkha' in a single ToA run.",'Tombs of Amascut: Expert'],
+["Grandmaster","Akkhan't Do it","Defeat Akkha with all invocations, without dying.",'Tombs of Amascut: Expert'],
+['Grandmaster','Expert Tomb Raider','Complete the Tombs of Amascut (Expert mode) 50 times.','Tombs of Amascut: Expert'],
+['Grandmaster','Tombs Speed Runner II','Complete a Tombs of Amascut Expert run within 20 minutes.','Tombs of Amascut: Expert'],
+['Grandmaster','All Praise Zebak','Defeat Zebak without losing prayer points.','Tombs of Amascut: Expert'],
+['Grandmaster','Tombs Speed Runner III','Complete a Tombs of Amascut Expert run within 18 minutes in a group of 8.','Tombs of Amascut: Expert'],
+["Grandmaster","Maybe I'm the boss",'Complete Tombs of Amascut with every boss invocation activated, no deaths.','Tombs of Amascut: Expert'],
+["Grandmaster","Amascut's Remnant",'Complete the Tombs of Amascut at raid level 500+ without deaths.','Tombs of Amascut: Expert'],
+['Grandmaster','Insanity',"Complete 'Perfect Wardens' at expert level or above.",'Tombs of Amascut: Expert'],
+['Grandmaster','The VI Jad Challenge',"Complete TzHaar-Ket-Rak's sixth challenge.","TzHaar-Ket-Rak's Challenges"],
+["Grandmaster","TzHaar-Ket-Rak's Speed-Runner","Complete TzHaar-Ket-Rak's fifth challenge in less than 5 minutes.","TzHaar-Ket-Rak's Challenges"],
+["Grandmaster","It Wasn't a Fluke","Complete TzHaar-Ket-Rak's fifth and sixth challenges back to back without failing.","TzHaar-Ket-Rak's Challenges"],
+['Grandmaster','Nibbler Chaser','Kill TzKal-Zuk without using magic spells during any wave.','TzKal-Zuk'],
+['Grandmaster','Jad? What Are You Doing Here?','Kill TzKal-Zuk without killing the JalTok-Jad spawning in wave 69.','TzKal-Zuk'],
+['Grandmaster','Playing with Jads','Complete wave 68 within 30 seconds of first JalTok-Jad dying.','TzKal-Zuk'],
+['Grandmaster','Facing Jad Head-on II','Kill TzKal-Zuk without equipping range or mage weapons before wave 69.','TzKal-Zuk'],
+["Grandmaster","Wasn't Even Close",'Kill TzKal-Zuk without letting hitpoints fall below 50 during any wave.','TzKal-Zuk'],
+['Grandmaster','No Luck Required','Kill TzKal-Zuk without being attacked by TzKal-Zuk or taking damage from Jad.','TzKal-Zuk'],
+['Grandmaster','The Floor Is Lava','Kill TzKal-Zuk without letting Jal-ImKot dig during any wave.','TzKal-Zuk'],
+['Grandmaster','Inferno Grandmaster','Complete the Inferno 5 times.','TzKal-Zuk'],
+['Grandmaster','Budget Setup','Kill TzKal-Zuk without equipping a Twisted Bow.','TzKal-Zuk'],
+['Grandmaster','Inferno Speed-Runner','Complete the Inferno in less than 65 minutes.','TzKal-Zuk'],
+['Grandmaster','Fight Caves Speed-Runner','Complete the Fight Caves in less than 26:30.','TzTok-Jad'],
+['Grandmaster','No Time for a Drink','Complete the Fight Caves without losing any prayer points.','TzTok-Jad'],
+['Grandmaster','Denying the Healers II','Complete the Fight Caves without TzTok-Jad being healed by a Yt-HurKot.','TzTok-Jad'],
+['Grandmaster','Vardorvis Sleeper','Kill Awakened Vardorvis.','Vardorvis'],
+['Grandmaster','Vardorvis Speed-Runner','Kill Vardorvis in less than 0:55 without a slayer task.','Vardorvis'],
+['Grandmaster','Axe Enthusiast','Kill Vardorvis after surviving 3 minutes at max speed, staying in the centre 25 tiles.','Vardorvis'],
+['Grandmaster','Vorkath Speed-Runner','Kill Vorkath in less than 54 seconds.','Vorkath'],
+['Grandmaster','Faithless Encounter','Kill Vorkath without losing any prayer points.','Vorkath'],
+['Grandmaster','The Fremennik Way','Kill Vorkath with only your fists.','Vorkath'],
+['Grandmaster','Whisperer Speed-Runner','Kill the Whisperer in less than 2:05 without a slayer task.','Whisperer'],
+['Grandmaster','Whispered','Kill the Awakened Whisperer.','Whisperer'],
+['Grandmaster','Dark Memories','Kill the Whisperer whilst spending less than 6 seconds in the pre-enrage shadow realm.','Whisperer'],
+['Grandmaster','Yama Speed-Runner','Defeat Yama with an average time under 2:34 over your last four kills.','Yama'],
+['Grandmaster','Contractually Unbound','Defeat Yama under elevated conditions of a non-standard contract.','Yama'],
+['Grandmaster','Contract Choreographer','Defeat Yama whilst completing multiple specific requirements.','Yama'],
+['Grandmaster','Zulrah Speed-Runner','Kill Zulrah in less than 54 seconds without a slayer task.','Zulrah'],
+].map(([tier,name,desc,boss])=>({tier,name,desc,boss}));
+
+// State
+const S={completed:new Set(),hidden:new Set(),bossKC:{},activeTier:'all',hideDone:false,kcOnly:false,showHidden:false,playerType:'',caPoints:0};
+
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem('osrs-ca-v1')||'{}');
+    S.completed=new Set(d.completed||[]);
+    S.hidden=new Set(d.hidden||[]);
+    S.bossKC=d.bossKC||{};
+    S.playerType=d.playerType||'';
+    S.caPoints=d.caPoints||0;
+    if(d.username) document.getElementById('ign').value=d.username;
+    if(d.username&&S.playerType) showBadge(d.username,S.playerType,S.caPoints);
+  }catch(e){}
+}
+
+function save(){
+  const ign=document.getElementById('ign').value.trim();
+  localStorage.setItem('osrs-ca-v1',JSON.stringify({
+    completed:[...S.completed],hidden:[...S.hidden],bossKC:S.bossKC,
+    username:ign,playerType:S.playerType,caPoints:S.caPoints
+  }));
+}
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+function showBadge(name,type,pts){
+  const icons={ironman:'<i class="ti ti-hammer"></i>',hardcore_ironman:'<i class="ti ti-skull"></i>',ultimate_ironman:'<i class="ti ti-crown"></i>'};
+  const labels={ironman:'Ironman',hardcore_ironman:'HCIM',ultimate_ironman:'UIM'};
+  let h=`<div class="player-badge">${icons[type]||''}<strong>${name}</strong>`;
+  if(labels[type]) h+=` <span style="color:var(--text3);font-size:11px">${labels[type]}</span>`;
+  if(pts>0) h+=` <span style="color:var(--text3);font-size:11px">· ${pts.toLocaleString()} CA pts</span>`;
+  h+=`</div>`;
+  document.getElementById('player-info').innerHTML=h;
+}
+
+async function loadWOM(){
+  const ign=document.getElementById('ign').value.trim();
+  if(!ign){toast('Enter your RSN first');return;}
+  const btn=document.getElementById('sync-btn');
+  btn.innerHTML='<i class="ti ti-loader-2"></i> Loading…';btn.disabled=true;
+  try{
+    await fetch(`https://api.wiseoldman.net/v2/players/${encodeURIComponent(ign)}`,{method:'POST',headers:{'Content-Type':'application/json'}}).catch(()=>{});
+    const res=await fetch(`https://api.wiseoldman.net/v2/players/${encodeURIComponent(ign)}`);
+    if(!res.ok) throw new Error(`"${ign}" not found on Wise Old Man. Make sure the name is exact.`);
+    const data=await res.json();
+    const bosses=data.latestSnapshot?.data?.bosses||{};
+    const acts=data.latestSnapshot?.data?.activities||{};
+    S.bossKC={};
+    for(const [k,v] of Object.entries(bosses)){
+      const mapped=WOM[k];
+      const kc=v.kills??v.score??-1;
+      if(mapped&&kc>0) S.bossKC[mapped]=kc;
+    }
+    const caEntry=acts.combatAchievementPoints??acts.combat_achievement_points;
+    S.caPoints=caEntry?(caEntry.score??caEntry.kills??0):0;
+    S.playerType=data.type||'regular';
+    showBadge(data.displayName||ign,S.playerType,S.caPoints);
+    save();render();
+    toast(`Loaded KCs for ${data.displayName||ign} — ${Object.keys(S.bossKC).length} bosses tracked`);
+  }catch(e){toast(e.message);}
+  finally{btn.innerHTML='<i class="ti ti-refresh"></i> Sync KC';btn.disabled=false;}
+}
+
+function exportData(){
+  const ign=document.getElementById('ign').value.trim();
+  const blob=new Blob([JSON.stringify({username:ign,completed:[...S.completed],hidden:[...S.hidden],bossKC:S.bossKC,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`osrs-ca-${ign||'tracker'}.json`;a.click();URL.revokeObjectURL(a.href);
+}
+
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      S.completed=new Set(d.completed||[]);S.hidden=new Set(d.hidden||[]);S.bossKC=d.bossKC||{};
+      if(d.username) document.getElementById('ign').value=d.username;
+      save();render();toast('Progress imported');
+    }catch{toast('Invalid file');}
+  };
+  r.readAsText(file);e.target.value='';
+}
+
+function toggleOpt(key,btnId){
+  S[key]=!S[key];
+  const btn=document.getElementById(btnId);
+  btn.style.background=S[key]?'var(--accent)':'';
+  btn.style.color=S[key]?'#fff':'';
+  btn.style.borderColor=S[key]?'transparent':'';
+  render();
+}
+
+function clearHidden(){S.hidden.clear();save();render();toast('All hidden tasks restored');}
+
+function render(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const list=document.getElementById('task-list');
+  const filtered=T.filter(t=>{
+    if(!S.showHidden&&S.hidden.has(t.name)) return false;
+    if(S.activeTier!=='all'&&t.tier!==S.activeTier) return false;
+    if(S.hideDone&&S.completed.has(t.name)) return false;
+    if(S.kcOnly&&Object.keys(S.bossKC).length>0&&!S.bossKC[t.boss]) return false;
+    if(q&&!t.name.toLowerCase().includes(q)&&!t.desc.toLowerCase().includes(q)&&!t.boss.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if(!filtered.length){
+    list.innerHTML='<div class="empty"><i class="ti ti-mood-empty"></i>No tasks match current filters.</div>';
+  } else {
+    list.innerHTML=filtered.map(t=>{
+      const done=S.completed.has(t.name);
+      const hid=S.hidden.has(t.name);
+      const kc=S.bossKC[t.boss];
+      const c=TS[t.tier];
+      const safeN=t.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `<div class="task-row${done?' done':''}">
+<input type="checkbox"${done?' checked':''} onchange="toggle('${safeN}')">
+<span><span class="tier-badge" style="background:${c.bg};color:${c.text}">${t.tier}</span></span>
+<span class="tname">${t.name}</span>
+<span class="tdesc">${t.desc}</span>
+<span class="tboss">${t.boss}${kc?`<span class="kc-badge">${kc.toLocaleString()} KC</span>`:''}</span>
+<button class="hide-btn" onclick="hide('${safeN}')" title="${hid?'Restore':'Hide'}"><i class="ti ${hid?'ti-eye':'ti-eye-off'}" aria-hidden="true"></i></button>
+</div>`;
+    }).join('');
+  }
+  const done=S.completed.size;
+  const total=T.length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('stat-text').textContent=`${filtered.length} shown · ${done}/${total} done · ${S.hidden.size} hidden`;
+  document.getElementById('stat-pct').textContent=`${pct}%`;
+  document.getElementById('prog-fill').style.width=`${pct}%`;
+}
+
+function toggle(name){
+  if(S.completed.has(name)) S.completed.delete(name); else S.completed.add(name);
+  save();render();
+}
+function hide(name){
+  if(S.hidden.has(name)) S.hidden.delete(name); else S.hidden.add(name);
+  save();render();
+}
+
+// Tier buttons
+document.getElementById('tier-row').addEventListener('click',e=>{
+  const btn=e.target.closest('.tier-btn');if(!btn)return;
+  S.activeTier=btn.dataset.tier;
+  document.querySelectorAll('.tier-btn').forEach(b=>{
+    const tier=b.dataset.tier;const tc=TS[tier];
+    b.style.background='transparent';
+    b.style.color=tier==='all'?'var(--text)':(tc?.text||'var(--text)');
+    b.style.borderColor=tier==='all'?'var(--border2)':(tc?.text||'var(--border2)');
+    b.style.fontWeight='500';
+  });
+  btn.style.background=btn.dataset.tier==='all'?'var(--text2)':(TS[btn.dataset.tier]?.text||'var(--accent)');
+  btn.style.color='#fff';btn.style.borderColor='transparent';
+  render();
+});
+
+document.getElementById('ign').addEventListener('keydown',e=>{if(e.key==='Enter')loadWOM();});
+
+// Init — click "All" button
+document.querySelector('[data-tier="all"]').style.background='var(--text2)';
+document.querySelector('[data-tier="all"]').style.color='#fff';
+document.querySelector('[data-tier="all"]').style.borderColor='transparent';
+load();render();
+</script>
+</body>
+</html>
