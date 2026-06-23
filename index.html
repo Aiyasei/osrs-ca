@@ -84,7 +84,7 @@ input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent
   <div class="wom-row">
     <input type="text" id="ign" placeholder="RSN (e.g. Ai Yeon-ae)" autocomplete="off">
     <button class="btn-primary" id="sync-btn" onclick="loadWOM()"><i class="ti ti-refresh" aria-hidden="true"></i> Sync KC</button>
-    <button id="ws-btn" onclick="openWsModal()"><i class="ti ti-shield-check" aria-hidden="true"></i> WikiSync</button>
+    <button id="ws-btn" onclick="loadWikiSync()"><i class="ti ti-shield-check" aria-hidden="true"></i> WikiSync</button>
     <span id="player-info"></span>
   </div>
   <div class="header-actions">
@@ -852,6 +852,37 @@ async function loadWOM(){
     toast(`Loaded KCs for ${data.displayName||ign} — ${Object.keys(S.bossKC).length} bosses tracked`);
   }catch(e){toast(e.message);}
   finally{btn.innerHTML='<i class="ti ti-refresh"></i> Sync KC';btn.disabled=false;}
+}
+
+async function loadWikiSync(){
+  const ign=document.getElementById('ign').value.trim();
+  if(!ign){toast('Enter your RSN first');return;}
+  const btn=document.getElementById('ws-btn');
+  btn.innerHTML='<i class="ti ti-loader-2"></i> Syncing…';btn.disabled=true;
+  try{
+    const apiUrl=`https://sync.runescape.wiki/runelite/player/${encodeURIComponent(ign)}/STANDARD`;
+    let data;
+    try{
+      const r=await fetch(apiUrl);
+      data=await r.json();
+    }catch{
+      const r=await fetch(`https://corsproxy.io/?${apiUrl}`);
+      data=await r.json();
+    }
+    if(data.error) throw new Error(`WikiSync: ${data.error}`);
+    const ids=new Set(data.combat_achievements||[]);
+    let added=0;
+    for(const t of T){
+      const id=CA_IDS[t.name];
+      if(id!==undefined&&ids.has(id)&&!S.completed.has(t.name)){S.completed.add(t.name);added++;}
+    }
+    save();render();
+    toast(`WikiSync: marked ${added} new task${added===1?'':'s'} done (${ids.size} completed in-game)`);
+  }catch(e){
+    toast((e.message||'WikiSync fetch failed')+'  — use paste mode below');
+    openWsModal();
+  }
+  finally{btn.innerHTML='<i class="ti ti-shield-check"></i> WikiSync';btn.disabled=false;}
 }
 
 function openWsModal(){
