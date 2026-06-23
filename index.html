@@ -87,9 +87,8 @@ input[type=checkbox]{width:15px;height:15px;margin-top:2px;cursor:pointer;accent
 <div class="header-inner">
   <h1><i class="ti ti-sword" aria-hidden="true"></i> CA Tracker</h1>
   <div class="wom-row">
-    <input type="text" id="ign" placeholder="RSN (e.g. Ai Yeon-ae)" autocomplete="off">
-    <button class="btn-primary" id="sync-btn" onclick="loadWOM()"><i class="ti ti-refresh" aria-hidden="true"></i> Sync KC</button>
-    <button id="ws-btn" onclick="loadWikiSync()"><i class="ti ti-shield-check" aria-hidden="true"></i> WikiSync</button>
+    <input type="text" id="ign" placeholder="RSN (e.g. Ai yeon-ae)" autocomplete="off" onkeydown="if(event.key==='Enter')syncAll()">
+    <button class="btn-primary" id="sync-btn" onclick="syncAll()"><i class="ti ti-refresh" aria-hidden="true"></i> Sync</button>
     <span id="player-info"></span>
   </div>
   <div class="header-actions">
@@ -838,63 +837,73 @@ function showBadge(name,type,pts){
   document.getElementById('player-info').innerHTML=h;
 }
 
-async function loadWOM(){
+async function fetchWikiSync(ign){
+  const proxies=[
+    u=>u,
+    u=>`https://corsproxy.io/?${u}`,
+    u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  ];
+  const names=[ign, ign.toLowerCase()];
+  for(const name of names){
+    const apiUrl=`https://sync.runescape.wiki/runelite/player/${encodeURIComponent(name)}/STANDARD`;
+    for(const proxy of proxies){
+      try{
+        const r=await fetch(proxy(apiUrl));
+        if(!r.ok) continue;
+        const d=await r.json();
+        if(!d.error) return d;
+      }catch{}
+    }
+  }
+  return null;
+}
+
+async function syncAll(){
   const ign=document.getElementById('ign').value.trim();
   if(!ign){toast('Enter your RSN first');return;}
   const btn=document.getElementById('sync-btn');
-  btn.innerHTML='<i class="ti ti-loader-2"></i> Loading…';btn.disabled=true;
-  try{
-    await fetch(`https://api.wiseoldman.net/v2/players/${encodeURIComponent(ign)}`,{method:'POST',headers:{'Content-Type':'application/json'}}).catch(()=>{});
-    const res=await fetch(`https://api.wiseoldman.net/v2/players/${encodeURIComponent(ign)}`);
-    if(!res.ok) throw new Error(`"${ign}" not found on Wise Old Man. Make sure the name is exact.`);
-    const data=await res.json();
-    const bosses=data.latestSnapshot?.data?.bosses||{};
-    const acts=data.latestSnapshot?.data?.activities||{};
-    S.bossKC={};
-    for(const [k,v] of Object.entries(bosses)){
-      const mapped=WOM[k];
-      const kc=v.kills??v.score??-1;
-      if(mapped&&kc>0) S.bossKC[mapped]=kc;
-    }
-    const caEntry=acts.combatAchievementPoints??acts.combat_achievement_points;
-    S.caPoints=caEntry?(caEntry.score??caEntry.kills??0):0;
-    S.playerType=data.type||'regular';
-    showBadge(data.displayName||ign,S.playerType,S.caPoints);
-    save();render();
-    toast(`Loaded KCs for ${data.displayName||ign} — ${Object.keys(S.bossKC).length} bosses tracked`);
-  }catch(e){toast(e.message);}
-  finally{btn.innerHTML='<i class="ti ti-refresh"></i> Sync KC';btn.disabled=false;}
-}
-
-async function loadWikiSync(){
-  const ign=document.getElementById('ign').value.trim();
-  if(!ign){toast('Enter your RSN first');return;}
-  const btn=document.getElementById('ws-btn');
   btn.innerHTML='<i class="ti ti-loader-2"></i> Syncing…';btn.disabled=true;
+  const results=[];
   try{
-    const apiUrl=`https://sync.runescape.wiki/runelite/player/${encodeURIComponent(ign)}/STANDARD`;
-    let data;
+    // WOM — boss KC + player badge
     try{
-      const r=await fetch(apiUrl);
-      data=await r.json();
-    }catch{
-      const r=await fetch(`https://corsproxy.io/?${apiUrl}`);
-      data=await r.json();
-    }
-    if(data.error) throw new Error(`WikiSync: ${data.error}`);
-    const ids=new Set(data.combat_achievements||[]);
-    let added=0;
-    for(const t of T){
-      const id=CA_IDS[t.name];
-      if(id!==undefined&&ids.has(id)&&!S.completed.has(t.name)){S.completed.add(t.name);added++;}
+      await fetch(`https://api.wiseoldman.net/v2/players/${encodeURIComponent(ign)}`,{method:'POST',headers:{'Content-Type':'application/json'}}).catch(()=>{});
+      const res=await fetch(`https://api.wiseoldman.net/v2/players/${encodeURIComponent(ign)}`);
+      if(res.ok){
+        const data=await res.json();
+        const bosses=data.latestSnapshot?.data?.bosses||{};
+        const acts=data.latestSnapshot?.data?.activities||{};
+        S.bossKC={};
+        for(const [k,v] of Object.entries(bosses)){
+          const mapped=WOM[k];const kc=v.kills??v.score??-1;
+          if(mapped&&kc>0) S.bossKC[mapped]=kc;
+        }
+        const caEntry=acts.combatAchievementPoints??acts.combat_achievement_points;
+        S.caPoints=caEntry?(caEntry.score??caEntry.kills??0):0;
+        S.playerType=data.type||'regular';
+        showBadge(data.displayName||ign,S.playerType,S.caPoints);
+        results.push(`${data.displayName||ign} loaded`);
+      }
+    }catch{}
+    // WikiSync — completed CA tasks
+    const wsData=await fetchWikiSync(ign);
+    if(wsData){
+      const ids=new Set(wsData.combat_achievements||[]);
+      let added=0;
+      for(const t of T){
+        const id=CA_IDS[t.name];
+        if(id!==undefined&&ids.has(id)&&!S.completed.has(t.name)){S.completed.add(t.name);added++;}
+      }
+      results.push(`${added} new CA task${added===1?'':'s'} marked done (${ids.size} total)`);
+    } else {
+      results.push('WikiSync: auto-fetch failed — use paste mode');
+      openWsModal();
     }
     save();render();
-    toast(`WikiSync: marked ${added} new task${added===1?'':'s'} done (${ids.size} completed in-game)`);
-  }catch(e){
-    toast((e.message||'WikiSync fetch failed')+'  — use paste mode below');
-    openWsModal();
+    toast(results.join(' · '));
+  }finally{
+    btn.innerHTML='<i class="ti ti-refresh"></i> Sync';btn.disabled=false;
   }
-  finally{btn.innerHTML='<i class="ti ti-shield-check"></i> WikiSync';btn.disabled=false;}
 }
 
 function openWsModal(){
